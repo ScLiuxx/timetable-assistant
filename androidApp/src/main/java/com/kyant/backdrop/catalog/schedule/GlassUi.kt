@@ -23,7 +23,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.slideInVertically
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -232,6 +239,9 @@ fun GlassDialog(
     modifier: Modifier = Modifier,
     content: @Composable ColumnScope.() -> Unit
 ) {
+    var visible by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { visible = true }
+
     Box(Modifier.fillMaxSize()) {
         Box(
             Modifier
@@ -248,24 +258,40 @@ fun GlassDialog(
                 .padding(horizontal = 20.dp),
             contentAlignment = Alignment.Center
         ) {
-            GlassSurface(
-                modifier = modifier
-                    .fillMaxWidth()
-                    .clickable(
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                        onClick = {}
-                    ),
-                shape = RoundedCornerShape(26.dp),
-                contentPadding = PaddingValues(20.dp),
-                content = {
-                    Column(
-                        Modifier.fillMaxWidth(),
-                        verticalArrangement = Arrangement.spacedBy(14.dp),
-                        content = content
+            AnimatedVisibility(
+                visible = visible,
+                enter = fadeIn(spring(stiffness = Spring.StiffnessLow)) +
+                    scaleIn(
+                        initialScale = 0.92f,
+                        animationSpec = spring(
+                            dampingRatio = Spring.DampingRatioMediumBouncy,
+                            stiffness = Spring.StiffnessLow
+                        )
+                    ) +
+                    slideInVertically(
+                        initialOffsetY = { it / 16 },
+                        animationSpec = spring(stiffness = Spring.StiffnessLow)
                     )
-                }
-            )
+            ) {
+                GlassSurface(
+                    modifier = modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null,
+                            onClick = {}
+                        ),
+                    shape = RoundedCornerShape(26.dp),
+                    contentPadding = PaddingValues(20.dp),
+                    content = {
+                        Column(
+                            Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(14.dp),
+                            content = content
+                        )
+                    }
+                )
+            }
         }
     }
 }
