@@ -43,6 +43,7 @@ fun LiquidButton(
     content: @Composable RowScope.() -> Unit
 ) {
     val animationScope = rememberCoroutineScope()
+    val glassSurface = if (!surfaceColor.isSpecified) glassSurfaceColor() else Color.Unspecified
 
     val interactiveHighlight = remember(animationScope) {
         InteractiveHighlight(
@@ -95,6 +96,8 @@ fun LiquidButton(
                     }
                     if (surfaceColor.isSpecified) {
                         drawRect(surfaceColor)
+                    } else if (glassSurface.isSpecified) {
+                        drawRect(glassSurface)
                     }
                 }
             )

@@ -52,6 +52,8 @@ import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
 import com.kyant.backdrop.catalog.utils.InteractiveHighlight
+import com.kyant.backdrop.catalog.components.LocalGlassOpacity
+import com.kyant.backdrop.catalog.components.glassSurfaceColor
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.Shadow
 import kotlin.math.abs
@@ -69,9 +71,6 @@ val LocalAccentColor = staticCompositionLocalOf<Color> {
     Color(0xFF0A84FF)
 }
 
-/** 玻璃表面不透明度（0.2 ~ 0.8），越高玻璃越"实"、底层越透不过。 */
-val LocalGlassOpacity = staticCompositionLocalOf<Float> { 0.42f }
-
 @Composable
 fun isLightTheme(): Boolean = !isSystemInDarkTheme()
 
@@ -85,13 +84,6 @@ fun secondaryContentColor(): Color =
 
 @Composable
 fun accentColor(): Color = LocalAccentColor.current
-
-@Composable
-fun glassSurfaceColor(): Color {
-    val alpha = LocalGlassOpacity.current
-    return if (isLightTheme()) Color(0xFFFFFFFF).copy(alpha = alpha)
-    else Color(0xFF16161A).copy(alpha = alpha)
-}
 
 @Composable
 fun GlassSurface(
@@ -321,6 +313,7 @@ fun GlassPillButton(
 ) {
     val backdrop = LocalGlassBackdrop.current
     val animationScope = rememberCoroutineScope()
+    val pillSurface = glassSurfaceColor()
     val interactiveHighlight = remember(animationScope) {
         InteractiveHighlight(animationScope = animationScope)
     }
@@ -349,6 +342,7 @@ fun GlassPillButton(
                     scaleY = scale + maxDragScale * abs(sin(offsetAngle) * offset.y / size.maxDimension) * (height / width).fastCoerceAtMost(1f)
                 },
                 onDrawSurface = {
+                    drawRect(pillSurface)
                     if (tint.isSpecified) {
                         drawRect(tint, blendMode = BlendMode.Hue)
                         drawRect(tint.copy(alpha = 0.75f))
