@@ -26,11 +26,13 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.Shape
@@ -40,13 +42,21 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.util.fastCoerceAtMost
+import androidx.compose.ui.util.lerp
 import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
+import com.kyant.backdrop.effects.lens
 import com.kyant.backdrop.effects.vibrancy
-import com.kyant.backdrop.catalog.components.LiquidButton
+import com.kyant.backdrop.catalog.utils.InteractiveHighlight
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.Shadow
+import kotlin.math.abs
+import kotlin.math.atan2
+import kotlin.math.cos
+import kotlin.math.sin
+import kotlin.math.tanh
 
 val LocalGlassBackdrop = staticCompositionLocalOf<Backdrop> {
     error("No glass backdrop provided")
@@ -284,26 +294,56 @@ fun GlassPillButton(
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 9.dp)
 ) {
     val backdrop = LocalGlassBackdrop.current
-    LiquidButton(
-        onClick = {
-            onClick()
-        },
-        backdrop = backdrop,
-        modifier = modifier,
-        tint = tint,
-        surfaceColor = Color.Unspecified,
-        content = {
-            Box(
-                Modifier.padding(contentPadding),
-                contentAlignment = Alignment.Center
-            ) {
-                BasicText(
-                    text,
-                    style = TextStyle(contentColorOverride ?: contentColor(), 14.sp, FontWeight.Medium)
-                )
-            }
-        }
-    )
+    val animationScope = rememberCoroutineScope()
+    val interactiveHighlight = remember(animationScope) {
+        InteractiveHighlight(animationScope = animationScope)
+    }
+    Box(
+        modifier
+            .drawBackdrop(
+                backdrop = backdrop,
+                shape = { RoundedCornerShape(50) },
+                effects = {
+                    vibrancy()
+                    blur(2f.dp.toPx())
+                    lens(12f.dp.toPx(), 24f.dp.toPx())
+                },
+                layerBlock = {
+                    val width = size.width
+                    val height = size.height
+                    val progress = interactiveHighlight.pressProgress
+                    val scale = lerp(1f, 1f + 4f.dp.toPx() / size.height, progress)
+                    val maxOffset = size.minDimension
+                    val offset = interactiveHighlight.offset
+                    translationX = maxOffset * tanh(0.05f * offset.x / maxOffset)
+                    translationY = maxOffset * tanh(0.05f * offset.y / maxOffset)
+                    val maxDragScale = 4f.dp.toPx() / size.height
+                    val offsetAngle = atan2(offset.y, offset.x)
+                    scaleX = scale + maxDragScale * abs(cos(offsetAngle) * offset.x / size.maxDimension) * (width / height).fastCoerceAtMost(1f)
+                    scaleY = scale + maxDragScale * abs(sin(offsetAngle) * offset.y / size.maxDimension) * (height / width).fastCoerceAtMost(1f)
+                },
+                onDrawSurface = {
+                    if (tint.isSpecified) {
+                        drawRect(tint, blendMode = BlendMode.Hue)
+                        drawRect(tint.copy(alpha = 0.75f))
+                    }
+                }
+            )
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null,
+                onClick = onClick
+            )
+            .then(interactiveHighlight.modifier)
+            .then(interactiveHighlight.gestureModifier)
+            .padding(contentPadding),
+        contentAlignment = Alignment.Center
+    ) {
+        BasicText(
+            text,
+            style = TextStyle(contentColorOverride ?: contentColor(), 14.sp, FontWeight.Medium)
+        )
+    }
 }
 
 @Composable
