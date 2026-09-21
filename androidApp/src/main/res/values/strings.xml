@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">课表助手</string>
+    <string name="reminder_channel_name">上课提醒</string>
+    <string name="reminder_channel_description">在课程开始前发送提醒通知</string>
+</resources>
