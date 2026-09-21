@@ -171,6 +171,13 @@ class ScheduleStore(private val context: Context) {
     var glassOpacity by mutableFloatStateOf(0.42f)
         private set
 
+    /** 是否已完成新手指引（应用级标志，独立持久化）。 */
+    var onboardingDone by mutableStateOf(
+        context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+            .getBoolean(KEY_ONBOARDING, false)
+    )
+        private set
+
     val courses = mutableStateListOf<Course>()
     val holidays = mutableStateListOf<Holiday>()
     val makeups = mutableStateListOf<Makeup>()
@@ -377,6 +384,12 @@ class ScheduleStore(private val context: Context) {
         persist()
     }
 
+    /** 标记新手指引已完成/已跳过，之后不再自动弹出。 */
+    fun completeOnboarding() {
+        onboardingDone = true
+        prefs.edit().putBoolean(KEY_ONBOARDING, true).apply()
+    }
+
     fun addCourse(course: Course) {
         courses.add(course)
         persist()
@@ -476,5 +489,6 @@ class ScheduleStore(private val context: Context) {
     companion object {
         private const val PREFS_NAME = "course_schedule_store"
         private const val KEY_DATA = "schedule_data"
+        private const val KEY_ONBOARDING = "onboarding_done"
     }
 }

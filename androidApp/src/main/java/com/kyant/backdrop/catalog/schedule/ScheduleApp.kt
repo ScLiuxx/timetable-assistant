@@ -67,6 +67,7 @@ fun ScheduleApp() {
     val context = LocalContext.current
     val store = remember { ScheduleStore(context) }
     var selectedTab by rememberSaveable { mutableIntStateOf(0) }
+    var showOnboarding by remember { mutableStateOf(!store.onboardingDone) }
 
     LaunchedEffect(Unit) {
         ReminderScheduler.ensureChannel(context)
@@ -148,6 +149,10 @@ fun ScheduleApp() {
                             onResetWallpaper = {
                                 wallpaperFile(context).delete()
                                 customWallpaper = null
+                            },
+                            onShowOnboarding = {
+                                showOnboarding = true
+                                selectedTab = 0
                             }
                         )
                     }
@@ -182,6 +187,19 @@ fun ScheduleApp() {
                         defaultDay = editorDay,
                         defaultPeriod = editorPeriod,
                         onDismiss = { editorVisible = false }
+                    )
+                }
+
+                if (showOnboarding) {
+                    OnboardingScreen(
+                        onFinish = {
+                            store.completeOnboarding()
+                            showOnboarding = false
+                        },
+                        onSkip = {
+                            store.completeOnboarding()
+                            showOnboarding = false
+                        }
                     )
                 }
             }

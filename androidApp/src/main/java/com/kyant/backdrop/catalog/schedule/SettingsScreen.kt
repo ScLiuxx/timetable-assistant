@@ -46,7 +46,8 @@ fun SettingsScreen(
     store: ScheduleStore,
     hasCustomWallpaper: Boolean,
     onPickWallpaper: () -> Unit,
-    onResetWallpaper: () -> Unit
+    onResetWallpaper: () -> Unit,
+    onShowOnboarding: () -> Unit = {}
 ) {
     val context = LocalContext.current
     var showImport by remember { mutableStateOf(false) }
@@ -348,6 +349,7 @@ fun SettingsScreen(
 
             SectionHeader("关于")
             GlassSection {
+                SettingsRowButton("查看新手指引", onClick = onShowOnboarding)
                 GlassLabel("课表助手 · 基于 Liquid Glass 液态玻璃界面", fontSize = 13)
                 GlassLabel("支持多周课表、单双周、节假日与调休补课。", fontSize = 12)
             }
