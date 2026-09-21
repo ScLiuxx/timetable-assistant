@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -180,21 +181,23 @@ fun ScheduleApp() {
                 }
 
                 if (isWide) {
+                    // 平板侧边导航：胶囊玻璃形态，与手机底栏一致；仅展示图标，简洁且省渲染开销。
                     GlassSurface(
                         modifier = Modifier
                             .align(Alignment.CenterStart)
                             .statusBarsPadding()
                             .navigationBarsPadding()
-                            .padding(start = 10.dp, top = 20.dp, bottom = 20.dp)
+                            .padding(start = 14.dp, top = 24.dp, bottom = 24.dp)
                             .width(68.dp)
+                            .heightIn(max = 420.dp)
                             .fillMaxHeight(),
-                        shape = RoundedCornerShape(28.dp),
-                        contentPadding = PaddingValues(vertical = 18.dp, horizontal = 8.dp),
+                        shape = RoundedCornerShape(50),
+                        contentPadding = PaddingValues(vertical = 16.dp, horizontal = 8.dp),
                         shadow = false
                     ) {
                         Column(
                             Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
+                            verticalArrangement = Arrangement.spacedBy(2.dp, Alignment.CenterVertically),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Tabs.forEachIndexed { index, item ->
@@ -203,7 +206,10 @@ fun ScheduleApp() {
                                     Modifier
                                         .weight(1f)
                                         .fillMaxWidth()
-                                        .clip(RoundedCornerShape(16.dp))
+                                        .clip(RoundedCornerShape(50))
+                                        .then(
+                                            if (selected) Modifier.background(accentColor().copy(alpha = 0.16f)) else Modifier
+                                        )
                                         .clickable(
                                             interactionSource = null,
                                             indication = null,

@@ -131,12 +131,12 @@ fun GlassSurface(
                 shape = { shape },
                 effects = {
                     vibrancy()
-                    blur(6f.dp.toPx())
-                    lens(8f.dp.toPx(), 20f.dp.toPx())
+                    blur(5f.dp.toPx())
+                    lens(6f.dp.toPx(), 16f.dp.toPx())
                 },
                 highlight = { Highlight.Default },
                 shadow = if (shadow) {
-                    { Shadow(radius = 10f.dp, color = shadowColor) }
+                    { Shadow(radius = 8f.dp, color = shadowColor) }
                 } else {
                     null
                 },
