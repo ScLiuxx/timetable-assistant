@@ -132,6 +132,7 @@ fun GlassSurface(
                 effects = {
                     vibrancy()
                     blur(6f.dp.toPx())
+                    lens(8f.dp.toPx(), 20f.dp.toPx())
                 },
                 highlight = { Highlight.Default },
                 shadow = if (shadow) {
