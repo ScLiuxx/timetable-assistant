@@ -36,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -55,6 +56,8 @@ fun TimetableScreen(
     val today = todayEpochDay()
     val semester = store.semester
     val currentWeek = store.weekOf(today).coerceIn(1, semester.totalWeeks)
+    // 平板 / 大屏（≥600dp）走侧边导航，底部无需为标签栏预留大高度。
+    val isWide = LocalConfiguration.current.screenWidthDp >= 600
     val pagerState = rememberPagerState(initialPage = currentWeek - 1) { semester.totalWeeks }
     val week = pagerState.currentPage + 1
     val scope = rememberCoroutineScope()
@@ -130,7 +133,7 @@ fun TimetableScreen(
                 .weight(1f)
                 .navigationBarsPadding()
                 .padding(horizontal = 8.dp)
-                .padding(bottom = 84.dp)
+                .padding(bottom = if (isWide) 18.dp else 84.dp)
         ) { page ->
             val pageWeek = page + 1
             BoxWithConstraints(Modifier.fillMaxSize()) {

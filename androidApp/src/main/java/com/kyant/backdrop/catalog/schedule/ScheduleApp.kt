@@ -152,10 +152,7 @@ fun ScheduleApp() {
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .padding(
-                            start = if (isWide) 84.dp else 0.dp,
-                            bottom = if (isWide) 0.dp else 66.dp
-                        )
+                        .padding(start = if (isWide) 84.dp else 0.dp)
                 ) {
                     when (selectedTab) {
                         0 -> TimetableScreen(store, onAdd = openAdd, onEdit = openEdit)
@@ -186,18 +183,18 @@ fun ScheduleApp() {
                     GlassSurface(
                         modifier = Modifier
                             .align(Alignment.CenterStart)
-                            .padding(start = 12.dp, top = 56.dp, bottom = 24.dp)
                             .statusBarsPadding()
                             .navigationBarsPadding()
-                            .width(64.dp)
+                            .padding(start = 10.dp, top = 20.dp, bottom = 20.dp)
+                            .width(68.dp)
                             .fillMaxHeight(),
                         shape = RoundedCornerShape(28.dp),
-                        contentPadding = PaddingValues(vertical = 14.dp, horizontal = 8.dp),
+                        contentPadding = PaddingValues(vertical = 18.dp, horizontal = 8.dp),
                         shadow = false
                     ) {
                         Column(
                             Modifier.fillMaxSize(),
-                            verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically),
+                            verticalArrangement = Arrangement.spacedBy(4.dp, Alignment.CenterVertically),
                             horizontalAlignment = Alignment.CenterHorizontally
                         ) {
                             Tabs.forEachIndexed { index, item ->
@@ -312,6 +309,8 @@ fun ScreenScaffold(
     subtitle: String?,
     content: @Composable BoxScope.() -> Unit
 ) {
+    // 平板 / 大屏（≥600dp）走侧边导航，无需再为底部标签栏预留大量高度。
+    val isWide = LocalConfiguration.current.screenWidthDp >= 600
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         androidx.compose.foundation.layout.Spacer(Modifier.size(12.dp))
         Column(
@@ -335,7 +334,7 @@ fun ScreenScaffold(
             Modifier
                 .fillMaxSize()
                 .navigationBarsPadding()
-                .padding(bottom = 88.dp),
+                .padding(bottom = if (isWide) 18.dp else 88.dp),
             content = content
         )
     }
