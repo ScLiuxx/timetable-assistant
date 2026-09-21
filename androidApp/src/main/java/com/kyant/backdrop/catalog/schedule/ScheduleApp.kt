@@ -157,6 +157,7 @@ fun ScheduleApp() {
                     onTabSelected = { selectedTab = it },
                     backdrop = backdrop,
                     tabsCount = Tabs.size,
+                    glassOpacity = store.glassOpacity,
                     modifier = Modifier
                         .align(Alignment.BottomCenter)
                         .navigationBarsPadding()
