@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_background"
+    android:padding="16dp"
+    tools:ignore="MissingClass">
+
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#E6111114"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end"
+        tools:text="今日 · 第 5 周 周一" />
+
+    <TextView
+        android:id="@+id/widget_subtitle"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="1dp"
+        android:textColor="#99000000"
+        android:textSize="11sp"
+        android:maxLines="1"
+        android:ellipsize="end"
+        tools:text="共 3 节课" />
+
+    <LinearLayout
+        android:id="@+id/widget_row1"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        <TextView
+            android:id="@+id/widget_row1_time"
+            android:layout_width="48dp"
+            android:layout_height="wrap_content"
+            android:textColor="#CC111114"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            tools:text="08:00" />
+        <TextView
+            android:id="@+id/widget_row1_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="#FF111114"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"
+            tools:text="高等数学" />
+        <TextView
+            android:id="@+id/widget_row1_meta"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.9"
+            android:textColor="#88000000"
+            android:textSize="10sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            tools:text="A栋301 张老师" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/widget_row2"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        <TextView
+            android:id="@+id/widget_row2_time"
+            android:layout_width="48dp"
+            android:layout_height="wrap_content"
+            android:textColor="#CC111114"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            tools:text="10:00" />
+        <TextView
+            android:id="@+id/widget_row2_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="#FF111114"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"
+            tools:text="线性代数" />
+        <TextView
+            android:id="@+id/widget_row2_meta"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.9"
+            android:textColor="#88000000"
+            android:textSize="10sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            tools:text="B502" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/widget_row3"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        <TextView
+            android:id="@+id/widget_row3_time"
+            android:layout_width="48dp"
+            android:layout_height="wrap_content"
+            android:textColor="#CC111114"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            tools:text="14:00" />
+        <TextView
+            android:id="@+id/widget_row3_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="#FF111114"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"
+            tools:text="大学英语" />
+        <TextView
+            android:id="@+id/widget_row3_meta"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.9"
+            android:textColor="#88000000"
+            android:textSize="10sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            tools:text="语音室2" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:id="@+id/widget_row4"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="6dp"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+        <TextView
+            android:id="@+id/widget_row4_time"
+            android:layout_width="48dp"
+            android:layout_height="wrap_content"
+            android:textColor="#CC111114"
+            android:textSize="11sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            tools:text="16:00" />
+        <TextView
+            android:id="@+id/widget_row4_name"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:textColor="#FF111114"
+            android:textSize="13sp"
+            android:textStyle="bold"
+            android:maxLines="1"
+            android:ellipsize="end"
+            tools:text="形势与政策" />
+        <TextView
+            android:id="@+id/widget_row4_meta"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="0.9"
+            android:textColor="#88000000"
+            android:textSize="10sp"
+            android:maxLines="1"
+            android:ellipsize="end"
+            tools:text="教1-209" />
+    </LinearLayout>
+
+</LinearLayout>

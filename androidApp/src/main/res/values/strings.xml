@@ -3,4 +3,7 @@
     <string name="reminder_channel_name">上课提醒</string>
     <string name="reminder_channel_description">在课程开始前发送提醒通知</string>
     <string name="schedule_widget_description">展示今日课程与上课时间</string>
+    <string name="schedule_widget_list_description">今日课程时间表列表</string>
+    <string name="schedule_widget_countdown_description">下一节课大字倒计时</string>
+    <string name="schedule_widget_week_description">本周课表周视图</string>
 </resources>

@@ -1,0 +1,248 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/widget_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:background="@drawable/widget_background"
+    android:padding="14dp"
+    tools:ignore="MissingClass">
+
+    <TextView
+        android:id="@+id/widget_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#E6111114"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:maxLines="1"
+        android:ellipsize="end"
+        tools:text="第 5 周课表" />
+
+    <LinearLayout
+        android:id="@+id/widget_week"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="8dp"
+        android:orientation="vertical"
+        android:weightSum="7">
+
+        <LinearLayout
+            android:id="@+id/widget_day1_cell"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/widget_day_bg">
+
+            <TextView
+                android:id="@+id/widget_day1_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#CC111114"
+                android:textSize="10sp"
+                android:maxLines="1"
+                tools:text="周一" />
+
+            <TextView
+                android:id="@+id/widget_day1_a"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="#FF111114"
+                android:textSize="9sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="高数" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_day2_cell"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/widget_day_bg">
+
+            <TextView
+                android:id="@+id/widget_day2_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#CC111114"
+                android:textSize="10sp"
+                android:maxLines="1"
+                tools:text="周二" />
+
+            <TextView
+                android:id="@+id/widget_day2_a"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="#FF111114"
+                android:textSize="9sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="英语" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_day3_cell"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/widget_day_bg">
+
+            <TextView
+                android:id="@+id/widget_day3_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#CC111114"
+                android:textSize="10sp"
+                android:maxLines="1"
+                tools:text="周三" />
+
+            <TextView
+                android:id="@+id/widget_day3_a"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="#FF111114"
+                android:textSize="9sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="物理" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_day4_cell"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/widget_day_bg">
+
+            <TextView
+                android:id="@+id/widget_day4_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#CC111114"
+                android:textSize="10sp"
+                android:maxLines="1"
+                tools:text="周四" />
+
+            <TextView
+                android:id="@+id/widget_day4_a"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="#FF111114"
+                android:textSize="9sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="编程" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_day5_cell"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/widget_day_bg">
+
+            <TextView
+                android:id="@+id/widget_day5_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#CC111114"
+                android:textSize="10sp"
+                android:maxLines="1"
+                tools:text="周五" />
+
+            <TextView
+                android:id="@+id/widget_day5_a"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="#FF111114"
+                android:textSize="9sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="体育" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_day6_cell"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:layout_marginBottom="6dp"
+            android:background="@drawable/widget_day_bg">
+
+            <TextView
+                android:id="@+id/widget_day6_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#CC111114"
+                android:textSize="10sp"
+                android:maxLines="1"
+                tools:text="周六" />
+
+            <TextView
+                android:id="@+id/widget_day6_a"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="#FF111114"
+                android:textSize="9sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="自习" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/widget_day7_cell"
+            android:layout_width="match_parent"
+            android:layout_height="0dp"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center"
+            android:background="@drawable/widget_day_bg">
+
+            <TextView
+                android:id="@+id/widget_day7_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:textColor="#CC111114"
+                android:textSize="10sp"
+                android:maxLines="1"
+                tools:text="周日" />
+
+            <TextView
+                android:id="@+id/widget_day7_a"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="2dp"
+                android:textColor="#FF111114"
+                android:textSize="9sp"
+                android:maxLines="1"
+                android:ellipsize="end"
+                tools:text="休息" />
+        </LinearLayout>
+    </LinearLayout>
+
+</LinearLayout>
