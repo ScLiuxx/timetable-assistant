@@ -25,6 +25,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
@@ -32,6 +33,7 @@ import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
@@ -181,14 +183,35 @@ fun GlassTextField(
     textStyle: TextStyle? = null
 ) {
     val color = contentColor()
-    GlassSurface(
-        modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(14.dp),
-        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 12.dp),
-        shadow = false
+    val backdrop = LocalGlassBackdrop.current
+    val surface = glassSurfaceColor()
+    var focused by remember { mutableStateOf(false) }
+    Box(
+        modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(14.dp))
+            .drawBackdrop(
+                backdrop = backdrop,
+                shape = { RoundedCornerShape(14.dp) },
+                effects = {
+                    vibrancy()
+                    blur(2f.dp.toPx())
+                    lens(8f.dp.toPx(), 16f.dp.toPx())
+                },
+                onDrawSurface = { drawRect(surface) }
+            )
+            .then(
+                if (focused) {
+                    Modifier.border(1.5.dp, accentColor(), RoundedCornerShape(14.dp))
+                } else {
+                    Modifier.border(0.5.dp, contentColor().copy(alpha = 0.12f), RoundedCornerShape(14.dp))
+                }
+            )
+            .padding(PaddingValues(horizontal = 14.dp, vertical = 12.dp)),
+        contentAlignment = Alignment.CenterStart
     ) {
         Box(Modifier.fillMaxWidth()) {
-            if (value.isEmpty()) {
+            if (value.isEmpty() && !focused) {
                 BasicText(
                     placeholder,
                     style = textStyle ?: TextStyle(secondaryContentColor(), 15.sp)
@@ -197,7 +220,9 @@ fun GlassTextField(
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { focused = it.isFocused },
                 textStyle = textStyle ?: TextStyle(color, 15.sp),
                 cursorBrush = SolidColor(accentColor()),
                 singleLine = singleLine,
