@@ -23,6 +23,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import kotlinx.coroutines.delay
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -79,6 +80,14 @@ fun ScheduleApp() {
         store.makeups.toList()
     ) {
         ReminderScheduler.reschedule(context, store)
+    }
+
+    // 周期刷新 Live Updates：进行中的课程进度滚动更新，下课后自动撤销。
+    LaunchedEffect(Unit) {
+        while (true) {
+            delay(30_000)
+            LiveUpdateManager.sync(context, store)
+        }
     }
 
     var editorVisible by remember { mutableStateOf(false) }

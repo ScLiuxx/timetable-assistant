@@ -230,8 +230,9 @@ class ScheduleStore(private val context: Context) {
             }
         })
         prefs.edit().putString(KEY_DATA, root.toString()).apply()
-        // 课表数据变化后刷新桌面小组件。
+        // 课表数据变化后刷新桌面小组件与 Live Updates。
         runCatching { ScheduleWidgetProvider.refreshAll(context) }
+        runCatching { LiveUpdateManager.sync(context, this) }
     }
 
     fun load() {
