@@ -33,6 +33,8 @@ import androidx.compose.ui.unit.sp
 fun AdjustScreen(store: ScheduleStore) {
     var showHolidayDialog by remember { mutableStateOf(false) }
     var showMakeupDialog by remember { mutableStateOf(false) }
+    var pendingMakeup by remember { mutableStateOf<Makeup?>(null) }
+    var pendingMakeupDay by remember { mutableLongStateOf(0L) }
 
     ScreenScaffold(
         title = "调休管理",
@@ -125,10 +127,42 @@ fun AdjustScreen(store: ScheduleStore) {
         MakeupDialog(
             onDismiss = { showMakeupDialog = false },
             onSave = { day, target, name ->
-                store.addMakeup(Makeup(day, target, name.ifBlank { "调休补课" }))
-                showMakeupDialog = false
+                if (store.holidays.any { it.epochDay == day }) {
+                    // 同日已设节假日，先弹出冲突确认，避免静默失效。
+                    pendingMakeup = Makeup(day, target, name.ifBlank { "调休补课" })
+                    pendingMakeupDay = day
+                    showMakeupDialog = false
+                } else {
+                    store.addMakeup(Makeup(day, target, name.ifBlank { "调休补课" }))
+                    showMakeupDialog = false
+                }
             }
         )
+    }
+
+    pendingMakeup?.let { makeup ->
+        GlassDialog(onDismiss = { pendingMakeup = null }) {
+            GlassTitle("提醒：与节假日冲突")
+            GlassLabel(
+                "${formatFullDate(pendingMakeupDay)} 已设为「${
+                    store.holidays.firstOrNull { it.epochDay == pendingMakeupDay }?.name ?: "节假日"
+                }」，节假日会优先于调休，该调休安排可能不生效。仍要添加吗？",
+                fontSize = 13
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                FlexSpacer()
+                GlassPillButton("取消", onClick = { pendingMakeup = null })
+                GlassPillButton(
+                    "仍要添加",
+                    onClick = {
+                        store.addMakeup(makeup)
+                        pendingMakeup = null
+                    },
+                    tint = Color(0xFFFF9500),
+                    contentColorOverride = Color.White
+                )
+            }
+        }
     }
 }
 

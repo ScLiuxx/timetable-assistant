@@ -81,9 +81,21 @@ fun parseDate(text: String): Long? {
     val y = parts[0].toIntOrNull() ?: return null
     val m = parts[1].toIntOrNull() ?: return null
     val d = parts[2].toIntOrNull() ?: return null
-    if (m !in 1..12 || d !in 1..31) return null
+    if (m !in 1..12) return null
+    if (d !in 1..daysInMonth(y, m)) return null
     return civilToEpochDay(y, m, d)
 }
+
+/** 该年该月的实际天数；month 非法时返回 0。 */
+fun daysInMonth(year: Int, month: Int): Int = when (month) {
+    1, 3, 5, 7, 8, 10, 12 -> 31
+    4, 6, 9, 11 -> 30
+    2 -> if (isLeapYear(year)) 29 else 28
+    else -> 0
+}
+
+private fun isLeapYear(year: Int): Boolean =
+    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
 
 fun currentHourMinute(): Pair<Int, Int> {
     val calendar = Calendar.getInstance()

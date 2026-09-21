@@ -32,7 +32,7 @@ fun TodayScreen(
 ) {
     val today = todayEpochDay()
     val resolution = store.resolveDay(today)
-    val week = store.weekOf(today)
+    val week = store.weekOf(today).coerceAtLeast(1)
     val courses = store.coursesFor(today)
     val (nowHour, nowMinute) = currentHourMinute()
     val nowMinutes = nowHour * 60 + nowMinute

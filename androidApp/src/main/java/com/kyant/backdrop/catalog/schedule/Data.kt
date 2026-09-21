@@ -308,7 +308,11 @@ class ScheduleStore(private val context: Context) {
 
     fun importJson(json: String): Boolean {
         return runCatching {
-            JSONObject(json)
+            val root = JSONObject(json)
+            // 校验这是本应用的课表数据，避免把任意 JSON 当成课表导入从而清空现有数据。
+            if (!root.has("version") && !root.has("courses") && !root.has("semester")) {
+                return@runCatching false
+            }
             prefs.edit().putString(KEY_DATA, json).apply()
             resetInMemory()
             load()

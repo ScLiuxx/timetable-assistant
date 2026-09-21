@@ -137,7 +137,7 @@ fun GlassDatePickerDialog(
         }
 
         // 日期网格（周一开头）
-        val dayCount = daysInMonthOf(year, month)
+        val dayCount = daysInMonth(year, month)
         val firstOffset = (isoDayOfWeek(civilToEpochDay(year, month, 1)) + 6) % 7
         val totalCells = ceil((firstOffset + dayCount) / 7.0).toInt() * 7
         for (r in 0 until totalCells / 7) {
@@ -241,7 +241,7 @@ fun GlassTimePickerDialog(
                 GlassNumberColumn(
                     modifier = Modifier.weight(1f),
                     label = "分",
-                    range = 0..59 step 5,
+                    range = 0..59,
                     value = minute,
                     onValueChange = { minute = it }
                 )
@@ -319,12 +319,3 @@ private fun nextInRange(
         else -> candidate
     }
 }
-
-private fun daysInMonthOf(year: Int, month: Int): Int = when (month) {
-    1, 3, 5, 7, 8, 10, 12 -> 31
-    4, 6, 9, 11 -> 30
-    else -> if (isLeapYear(year)) 29 else 28
-}
-
-private fun isLeapYear(year: Int): Boolean =
-    year % 4 == 0 && (year % 100 != 0 || year % 400 == 0)
