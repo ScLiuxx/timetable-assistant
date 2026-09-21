@@ -19,7 +19,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -48,25 +47,30 @@ fun CourseEditorDialog(
     var day by remember { mutableIntStateOf(existing?.dayOfWeek ?: defaultDay) }
     var startPeriod by remember { mutableIntStateOf(existing?.startPeriod ?: defaultPeriod) }
     var endPeriod by remember { mutableIntStateOf(existing?.endPeriod ?: defaultPeriod) }
-    var draftStartWeek by remember { mutableIntStateOf(1) }
-    var draftEndWeek by remember { mutableIntStateOf(store.semester.totalWeeks) }
-    val segments = remember {
-        val initial = existing?.weekRanges() ?: listOf(1..store.semester.totalWeeks)
-        mutableStateListOf<IntRange>().apply { addAll(initial) }
+    val totalWeeks = store.semester.totalWeeks.coerceAtLeast(1)
+    val allWeeks = remember(totalWeeks) { (1..totalWeeks).toSet() }
+    val allOddWeeks = remember(allWeeks) { allWeeks.filter { it % 2 == 1 }.toSet() }
+    val allEvenWeeks = remember(allWeeks) { allWeeks.filter { it % 2 == 0 }.toSet() }
+    val selectedWeeks = remember {
+        val weeks = if (existing != null) {
+            existing.weekRanges().flatMap { it }.toCollection(mutableSetOf())
+        } else {
+            (1..totalWeeks).toCollection(mutableSetOf())
+        }
+        // 保证至少有一周被选。
+        if (weeks.isEmpty()) weeks.add(1)
+        mutableStateOf(weeks)
     }
-    var parity by remember { mutableIntStateOf(existing?.parity ?: Course.PARITY_ALL) }
 
-    val addSegment: (Int, Int) -> Unit = { s, e ->
-        val start = s.coerceAtLeast(1).coerceAtMost(e)
-        val end = e.coerceAtLeast(start)
-        // 与被已有段合并，避免重叠段重复显示。
-        segments.removeAll { pairwiseOverlap(it, start..end) }
-        segments.add(start..end)
-        segments.sortBy { it.first }
+    val toggleWeek: (Int) -> Unit = { week ->
+        val current = HashSet(selectedWeeks.value)
+        if (!current.remove(week)) current.add(week)
+        if (current.isEmpty()) current.add(1)
+        selectedWeeks.value = current
     }
-    val removeSegment: (IntRange) -> Unit = { seg ->
-        segments.remove(seg)
-        if (segments.isEmpty()) segments.add(1..store.semester.totalWeeks)
+    val setWeeks: (Set<Int>) -> Unit = { weeks ->
+        val clean = weeks.filter { it in 1..totalWeeks }.toMutableSet()
+        selectedWeeks.value = if (clean.isEmpty()) mutableSetOf(1) else clean
     }
 
     var conflictCourse by remember { mutableStateOf<Course?>(null) }
@@ -76,19 +80,19 @@ fun CourseEditorDialog(
      * 判断依据：星期相同、节次区间重叠、任一周段重叠、单双周可同时生效。
      */
     val findConflict: () -> Course? = {
-        val draftWeekRanges = segments.toList()
+        val draftWeekRanges = compressRanges(selectedWeeks.value.sorted())
         store.courses.firstOrNull { other ->
             other.id != existing?.id &&
                 other.dayOfWeek == day &&
                 maxOf(other.startPeriod, startPeriod) <= minOf(other.endPeriod, endPeriod) &&
-                rangesOverlap(draftWeekRanges, other.weekRanges()) &&
-                (other.parity == Course.PARITY_ALL ||
-                    parity == Course.PARITY_ALL ||
-                    other.parity == parity)
+                rangesOverlap(draftWeekRanges, other.weekRanges())
         }
     }
 
     val saveCourse: () -> Unit = {
+        val ranges = compressRanges(selectedWeeks.value.sorted())
+        val first = ranges.first().first
+        val last = ranges.last().last
         val course = Course(
             id = existing?.id ?: System.nanoTime(),
             name = name.ifBlank { "未命名课程" },
@@ -99,10 +103,10 @@ fun CourseEditorDialog(
             dayOfWeek = day,
             startPeriod = startPeriod,
             endPeriod = endPeriod,
-            startWeek = segments.first().first,
-            endWeek = segments.first().last,
-            weekSegments = segments.toList(),
-            parity = parity
+            startWeek = first,
+            endWeek = last,
+            weekSegments = ranges,
+            parity = Course.PARITY_ALL
         )
         if (existing == null) store.addCourse(course) else store.updateCourse(course)
         onDismiss()
@@ -143,37 +147,59 @@ fun CourseEditorDialog(
                 endPeriod = it
             }
 
-            EditorLabel("开课周次（可多段，如 1-4 周 + 6-8 周）")
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
-            ) {
-                segments.forEach { seg ->
-                    GlassPillButton(
-                        if (seg.first == seg.last) "第${seg.first}周" else "第${seg.first}-${seg.last}周",
-                        onClick = { removeSegment(seg) },
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
-                    )
+            EditorLabel("开课周次（点击切换，可多段）")
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                GlassChip(
+                    "每周",
+                    selected = allWeeks == selectedWeeks.value,
+                    onClick = { setWeeks(allWeeks) }
+                )
+                GlassChip(
+                    "单周",
+                    selected = allOddWeeks == selectedWeeks.value,
+                    onClick = { setWeeks(allOddWeeks) }
+                )
+                GlassChip(
+                    "双周",
+                    selected = allEvenWeeks == selectedWeeks.value,
+                    onClick = { setWeeks(allEvenWeeks) }
+                )
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                GlassPillButton(
+                    "全选",
+                    onClick = { setWeeks(allWeeks) },
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                )
+                GlassPillButton(
+                    "清空",
+                    onClick = { setWeeks(emptySet()) },
+                    contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
+                )
+                GlassLabel(
+                    "已选 ${selectedWeeks.value.size} / $totalWeeks 周",
+                    fontSize = 12
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                (1..totalWeeks).chunked(6).forEachIndexed { rowIndex, rowWeeks ->
+                    Row(
+                        Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        rowWeeks.forEach { week ->
+                            GlassChip(
+                                "$week",
+                                selected = week in selectedWeeks.value,
+                                onClick = { toggleWeek(week) },
+                                modifier = Modifier.weight(1f)
+                            )
+                        }
+                        repeat(6 - rowWeeks.size) {
+                            androidx.compose.foundation.layout.Spacer(Modifier.weight(1f))
+                        }
+                    }
                 }
-            }
-            StepperRow("起始周", draftStartWeek, 1..store.semester.totalWeeks) {
-                draftStartWeek = it
-                if (draftEndWeek < it) draftEndWeek = it
-            }
-            StepperRow("结束周", draftEndWeek, draftStartWeek..store.semester.totalWeeks) {
-                draftEndWeek = it
-            }
-            GlassPillButton(
-                "＋ 添加周段",
-                onClick = { addSegment(draftStartWeek, draftEndWeek) },
-                contentPadding = PaddingValues(vertical = 8.dp)
-            )
-
-            EditorLabel("单双周")
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                GlassChip("每周", parity == Course.PARITY_ALL, onClick = { parity = Course.PARITY_ALL })
-                GlassChip("单周", parity == Course.PARITY_ODD, onClick = { parity = Course.PARITY_ODD })
-                GlassChip("双周", parity == Course.PARITY_EVEN, onClick = { parity = Course.PARITY_EVEN })
             }
 
             EditorLabel("颜色")
@@ -294,3 +320,22 @@ private fun pairwiseOverlap(a: IntRange, b: IntRange): Boolean =
 
 private fun rangesOverlap(a: List<IntRange>, b: List<IntRange>): Boolean =
     a.any { x -> b.any { y -> pairwiseOverlap(x, y) } }
+
+/** 将一组升序的周号压缩为连续周段，如 [1,2,3,6,7] -> [1..3, 6..7]。 */
+private fun compressRanges(sortedWeeks: List<Int>): List<IntRange> {
+    if (sortedWeeks.isEmpty()) return listOf(1..1)
+    val result = ArrayList<IntRange>()
+    var start = sortedWeeks.first()
+    var prev = start
+    for (week in sortedWeeks.drop(1)) {
+        if (week == prev + 1) {
+            prev = week
+        } else {
+            result.add(start..prev)
+            start = week
+            prev = week
+        }
+    }
+    result.add(start..prev)
+    return result
+}
