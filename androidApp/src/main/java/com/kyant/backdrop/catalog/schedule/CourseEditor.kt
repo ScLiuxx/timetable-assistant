@@ -19,6 +19,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -47,22 +48,40 @@ fun CourseEditorDialog(
     var day by remember { mutableIntStateOf(existing?.dayOfWeek ?: defaultDay) }
     var startPeriod by remember { mutableIntStateOf(existing?.startPeriod ?: defaultPeriod) }
     var endPeriod by remember { mutableIntStateOf(existing?.endPeriod ?: defaultPeriod) }
-    var startWeek by remember { mutableIntStateOf(existing?.startWeek ?: 1) }
-    var endWeek by remember { mutableIntStateOf(existing?.endWeek ?: store.semester.totalWeeks) }
+    var draftStartWeek by remember { mutableIntStateOf(1) }
+    var draftEndWeek by remember { mutableIntStateOf(store.semester.totalWeeks) }
+    val segments = remember {
+        val initial = existing?.weekRanges() ?: listOf(1..store.semester.totalWeeks)
+        mutableStateListOf<IntRange>().apply { addAll(initial) }
+    }
     var parity by remember { mutableIntStateOf(existing?.parity ?: Course.PARITY_ALL) }
+
+    val addSegment: (Int, Int) -> Unit = { s, e ->
+        val start = s.coerceAtLeast(1).coerceAtMost(e)
+        val end = e.coerceAtLeast(start)
+        // 与被已有段合并，避免重叠段重复显示。
+        segments.removeAll { pairwiseOverlap(it, start..end) }
+        segments.add(start..end)
+        segments.sortBy { it.first }
+    }
+    val removeSegment: (IntRange) -> Unit = { seg ->
+        segments.remove(seg)
+        if (segments.isEmpty()) segments.add(1..store.semester.totalWeeks)
+    }
 
     var conflictCourse by remember { mutableStateOf<Course?>(null) }
 
     /**
      * 查找与当前编辑内容在同一时段存在冲突的已有课程。
-     * 判断依据：星期相同、节次区间重叠、周次区间重叠、单双周可同时生效。
+     * 判断依据：星期相同、节次区间重叠、任一周段重叠、单双周可同时生效。
      */
     val findConflict: () -> Course? = {
+        val draftWeekRanges = segments.toList()
         store.courses.firstOrNull { other ->
             other.id != existing?.id &&
                 other.dayOfWeek == day &&
                 maxOf(other.startPeriod, startPeriod) <= minOf(other.endPeriod, endPeriod) &&
-                maxOf(other.startWeek, startWeek) <= minOf(other.endWeek, endWeek) &&
+                rangesOverlap(draftWeekRanges, other.weekRanges()) &&
                 (other.parity == Course.PARITY_ALL ||
                     parity == Course.PARITY_ALL ||
                     other.parity == parity)
@@ -80,8 +99,9 @@ fun CourseEditorDialog(
             dayOfWeek = day,
             startPeriod = startPeriod,
             endPeriod = endPeriod,
-            startWeek = startWeek,
-            endWeek = endWeek,
+            startWeek = segments.first().first,
+            endWeek = segments.first().last,
+            weekSegments = segments.toList(),
             parity = parity
         )
         if (existing == null) store.addCourse(course) else store.updateCourse(course)
@@ -123,14 +143,31 @@ fun CourseEditorDialog(
                 endPeriod = it
             }
 
-            EditorLabel("周次范围（第 $startWeek - $endWeek 周）")
-            StepperRow("开始周", startWeek, 1..store.semester.totalWeeks) {
-                startWeek = it
-                if (endWeek < it) endWeek = it
+            EditorLabel("开课周次（可多段，如 1-4 周 + 6-8 周）")
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(6.dp)
+            ) {
+                segments.forEach { seg ->
+                    GlassPillButton(
+                        if (seg.first == seg.last) "第${seg.first}周" else "第${seg.first}-${seg.last}周",
+                        onClick = { removeSegment(seg) },
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp)
+                    )
+                }
             }
-            StepperRow("结束周", endWeek, startWeek..store.semester.totalWeeks) {
-                endWeek = it
+            StepperRow("起始周", draftStartWeek, 1..store.semester.totalWeeks) {
+                draftStartWeek = it
+                if (draftEndWeek < it) draftEndWeek = it
             }
+            StepperRow("结束周", draftEndWeek, draftStartWeek..store.semester.totalWeeks) {
+                draftEndWeek = it
+            }
+            GlassPillButton(
+                "＋ 添加周段",
+                onClick = { addSegment(draftStartWeek, draftEndWeek) },
+                contentPadding = PaddingValues(vertical = 8.dp)
+            )
 
             EditorLabel("单双周")
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -251,3 +288,9 @@ private fun StepperRow(
         )
     }
 }
+
+private fun pairwiseOverlap(a: IntRange, b: IntRange): Boolean =
+    maxOf(a.first, b.first) <= minOf(a.last, b.last)
+
+private fun rangesOverlap(a: List<IntRange>, b: List<IntRange>): Boolean =
+    a.any { x -> b.any { y -> pairwiseOverlap(x, y) } }

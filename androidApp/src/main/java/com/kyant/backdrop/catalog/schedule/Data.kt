@@ -23,10 +23,25 @@ data class Course(
     val endPeriod: Int = 1,
     val startWeek: Int = 1,
     val endWeek: Int = 20,
+    /** 附加周段（如第 1-4 周、第 6-8 周），可与主区间组合表示不连续的多段周次。 */
+    val weekSegments: List<IntRange> = emptyList(),
     val parity: Int = PARITY_ALL
 ) {
-    fun weekRangeLabel(): String =
-        if (startWeek == endWeek) "第${startWeek}周" else "第${startWeek}-${endWeek}周"
+    /** 归一化的全部周段；未设置多段时回退为主区间 [startWeek]..[endWeek]。 */
+    fun weekRanges(): List<IntRange> =
+        if (weekSegments.isNotEmpty()) weekSegments else listOf(startWeek..endWeek)
+
+    fun weekRangeLabel(): String {
+        val ranges = weekRanges()
+        return if (ranges.size == 1) {
+            val r = ranges.first()
+            if (r.first == r.last) "第${r.first}周" else "第${r.first}-${r.last}周"
+        } else {
+            ranges.joinToString("、") { r ->
+                if (r.first == r.last) "第${r.first}周" else "第${r.first}-${r.last}周"
+            }
+        }
+    }
 
     fun parityLabel(): String =
         when (parity) {
@@ -44,7 +59,8 @@ data class Course(
         if (startPeriod == endPeriod) "第${startPeriod}节" else "第${startPeriod}-${endPeriod}节"
 
     fun matchesWeek(week: Int): Boolean {
-        if (week < startWeek || week > endWeek) return false
+        val inRange = weekRanges().any { week in it }
+        if (!inRange) return false
         return when (parity) {
             PARITY_ODD -> week % 2 == 1
             PARITY_EVEN -> week % 2 == 0
@@ -52,11 +68,31 @@ data class Course(
         }
     }
 
+    /** 两个课程在任一周段存在重叠（原始区间，未做单双周裁剪）。 */
+    fun overlapsRanges(other: Course): Boolean =
+        weekRanges().any { a -> other.weekRanges().any { b -> intersect(a, b) } }
+
     companion object {
         const val PARITY_ALL = 0
         const val PARITY_ODD = 1
         const val PARITY_EVEN = 2
     }
+}
+
+private fun intersect(a: IntRange, b: IntRange): Boolean =
+    maxOf(a.first, b.first) <= minOf(a.last, b.last)
+
+private fun parseWeekSegments(item: JSONObject): List<IntRange> {
+    val array = item.optJSONArray("weekSegments") ?: return emptyList()
+    val segments = ArrayList<IntRange>(array.length())
+    for (i in 0 until array.length()) {
+        val seg = array.optJSONObject(i) ?: continue
+        val s = seg.optInt("start", 1).coerceAtLeast(1)
+        val e = seg.optInt("end", s).coerceAtLeast(s)
+        segments.add(s..e)
+    }
+    // 若多段信息完整（至少两段）才启用，否则回退到主区间避免破坏旧数据。
+    return if (segments.size >= 2) segments else emptyList()
 }
 
 data class Holiday(
@@ -222,6 +258,16 @@ class ScheduleStore(private val context: Context) {
                     put("startWeek", course.startWeek)
                     put("endWeek", course.endWeek)
                     put("parity", course.parity)
+                    if (course.weekSegments.isNotEmpty()) {
+                        put("weekSegments", JSONArray().apply {
+                            course.weekSegments.forEach { seg ->
+                                put(JSONObject().apply {
+                                    put("start", seg.first)
+                                    put("end", seg.last)
+                                })
+                            }
+                        })
+                    }
                 })
             }
         })
@@ -290,6 +336,7 @@ class ScheduleStore(private val context: Context) {
                             endPeriod = item.optInt("endPeriod", 1),
                             startWeek = item.optInt("startWeek", 1),
                             endWeek = item.optInt("endWeek", 20),
+                            weekSegments = parseWeekSegments(item),
                             parity = item.optInt("parity", 0)
                         )
                     )
