@@ -92,9 +92,11 @@ fun LiquidSlider(
                         didDrag = dragAmount.x != 0f
                     }
                     val delta = (valueRange.endInclusive - valueRange.start) * (dragAmount.x / trackWidth)
+                    // 用"当前实际值"而非"动画目标值"作拖拽基准，避免拖拽与回弹动画
+                    // 互相追赶导致滑块抖动/滞后。
                     onValueChange(
-                        if (isLtr) (targetValue + delta).coerceIn(valueRange)
-                        else (targetValue - delta).coerceIn(valueRange)
+                        if (isLtr) (value() + delta).coerceIn(valueRange)
+                        else (value() - delta).coerceIn(valueRange)
                     )
                 }
             )

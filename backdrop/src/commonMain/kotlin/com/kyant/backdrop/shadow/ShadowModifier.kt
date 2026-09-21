@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.IntSize
 import com.kyant.backdrop.internal.ShapeProvider
 import com.kyant.backdrop.internal.blur
+import kotlin.math.abs
 import kotlin.math.ceil
 
 internal class ShadowElement(
@@ -82,28 +83,36 @@ internal class ShadowNode(
             val radius = shadow.radius.toPx()
             val offsetX = shadow.offset.x.toPx()
             val offsetY = shadow.offset.y.toPx()
-            val shadowSize = IntSize(
-                ceil(size.width + radius * 4f + offsetX).toInt(),
-                ceil(size.height + radius * 4f + offsetY).toInt()
-            )
-            val outline = shapeProvider.shape.createOutline(size, layoutDirection, density)
+            // 使用"半径模糊 + 偏移量绝对方向"统一扩展边距，避免负向 offset 把
+            // 记录图层尺寸算成负数（GraphicsLayer.record 负尺寸会崩溃）或把阴影裁剪掉。
+            val edgeX = radius * 2f + abs(offsetX)
+            val edgeY = radius * 2f + abs(offsetY)
+            if (edgeX > 0f) {
+                val shadowSize = IntSize(
+                    ceil(size.width + edgeX * 2f).toInt()
+                        .coerceAtLeast(1),
+                    ceil(size.height + edgeY * 2f).toInt()
+                        .coerceAtLeast(1)
+                )
+                val outline = shapeProvider.shape.createOutline(size, layoutDirection, density)
 
-            configurePaint(shadow)
+                configurePaint(shadow)
 
-            shadowLayer.alpha = shadow.alpha
-            shadowLayer.blendMode = shadow.blendMode
-            shadowLayer.record(shadowSize) {
-                translate(radius * 2f + offsetX, radius * 2f + offsetY) {
-                    val canvas = drawContext.canvas
-                    canvas.drawOutline(outline, paint)
-                    canvas.translate(-offsetX, -offsetY)
-                    canvas.drawOutline(outline, ShadowMaskPaint)
-                    canvas.translate(offsetX, offsetY)
+                shadowLayer.alpha = shadow.alpha
+                shadowLayer.blendMode = shadow.blendMode
+                shadowLayer.record(shadowSize) {
+                    translate(edgeX, edgeY) {
+                        val canvas = drawContext.canvas
+                        canvas.drawOutline(outline, paint)
+                        canvas.translate(-offsetX, -offsetY)
+                        canvas.drawOutline(outline, ShadowMaskPaint)
+                        canvas.translate(offsetX, offsetY)
+                    }
                 }
-            }
 
-            translate(-radius * 2f, -radius * 2f) {
-                drawLayer(shadowLayer)
+                translate(-edgeX, -edgeY) {
+                    drawLayer(shadowLayer)
+                }
             }
         }
 

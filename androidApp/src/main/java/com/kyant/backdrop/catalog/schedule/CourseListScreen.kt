@@ -45,7 +45,7 @@ fun CourseListScreen(
             course.teacher.contains(keyword, ignoreCase = true) ||
             course.location.contains(keyword, ignoreCase = true) ||
             course.note.contains(keyword, ignoreCase = true)
-        val matchParity = parityFilter == Course.PARITY_ALL || course.parity == parityFilter
+        val matchParity = parityFilter == Course.PARITY_ALL || course.effectiveParity == parityFilter
         matchKeyword && matchParity
     }
 

@@ -98,10 +98,22 @@ internal class HighlightNode(
             val density: Density = this
             val layoutDirection = layoutDirection
 
+            configurePaintForSize(highlight)
+
+            // 当高亮风格变化时，清空运行时 shader 缓存，避免不同风格复用同名缓存 key
+            // 导致旧高亮残留在新风格上（shouldAutoInvalidate=false 时尤其需要显式清理）。
+            if (prevStyle != highlight.style) {
+                runtimeShaderCache.clear()
+                prevStyle = highlight.style
+            }
+            val strokeWidth =
+                ceil(highlight.width.toPx().fastCoerceAtMost(size.minDimension / 2f)) * 2f
+            val blurRadius = highlight.blurRadius.toPx()
+            val margin = (strokeWidth / 2f + blurRadius).coerceAtLeast(1f)
             val safeSize =
                 IntSize(
-                    ceil(size.width).toInt() + 2,
-                    ceil(size.height).toInt() + 2
+                    ceil(size.width + margin * 2f).toInt().coerceAtLeast(1),
+                    ceil(size.height + margin * 2f).toInt().coerceAtLeast(1)
                 )
 
             val outline = shapeProvider.shape.createOutline(size, layoutDirection, density)
@@ -112,12 +124,10 @@ internal class HighlightNode(
                     null
                 }
 
-            configurePaint(highlight)
-
             highlightLayer.alpha = highlight.alpha
             highlightLayer.blendMode = highlight.style.blendMode
             highlightLayer.record(safeSize) {
-                translate(1f, 1f) {
+                translate(margin, margin) {
                     val canvas = drawContext.canvas
                     canvas.save()
                     canvas.clipOutline(outline, clipPath)
@@ -126,7 +136,7 @@ internal class HighlightNode(
                 }
             }
 
-            translate(-1f, -1f) {
+            translate(-margin, -margin) {
                 drawLayer(highlightLayer)
             }
         }
@@ -148,7 +158,7 @@ internal class HighlightNode(
         prevStyle = null
     }
 
-    private fun DrawScope.configurePaint(highlight: Highlight) {
+    private fun DrawScope.configurePaintForSize(highlight: Highlight) {
         paint.color = highlight.style.color
         paint.strokeWidth = ceil(highlight.width.toPx().fastCoerceAtMost(size.minDimension / 2f)) * 2f
         paint.blur(highlight.blurRadius.toPx())

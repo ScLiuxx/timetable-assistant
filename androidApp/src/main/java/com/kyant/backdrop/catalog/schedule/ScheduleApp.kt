@@ -27,6 +27,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -40,6 +41,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.graphics.painter.BitmapPainter
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.layout.ContentScale
@@ -111,9 +113,23 @@ fun ScheduleApp() {
 
     var customWallpaper by remember { mutableStateOf(loadWallpaperPainter(context)) }
     // 公平运行内存机制：系统内存紧张时释放壁纸位图，把内存交还系统，避免卡顿/被杀。
+    // 回到前台时复位内存压力等级，允许界面层重新加载壁纸，避免"释放一次就永远丢失"。
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = androidx.lifecycle.LifecycleEventObserver { _, event ->
+            if (event == androidx.lifecycle.Lifecycle.Event.ON_START) {
+                MemoryTracker.recover()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose { lifecycleOwner.lifecycle.removeObserver(observer) }
+    }
     LaunchedEffect(MemoryTracker.level) {
         if (MemoryTracker.shouldRelease()) {
             customWallpaper = null
+        } else if (customWallpaper == null) {
+            // 内存压力已复位（回到前台），重新加载之前被释放的壁纸位图。
+            customWallpaper = loadWallpaperPainter(context)
         }
     }
     val pickWallpaper = rememberLauncherForActivityResult(

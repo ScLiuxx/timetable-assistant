@@ -54,8 +54,16 @@ class DampedDragAnimation(
 
     private val velocityTracker = VelocityTracker()
 
+    /** 值域跨度；退化区间（起点==终点）时为 0，需在除法处做防护。 */
+    private val span: Float
+        get() = valueRange.endInclusive - valueRange.start
+
     val value: Float get() = valueAnimation.value
-    val progress: Float get() = (value - valueRange.start) / (valueRange.endInclusive - valueRange.start)
+    val progress: Float
+        get() {
+            val s = span
+            return if (s == 0f) 0f else (value - valueRange.start) / s
+        }
     val targetValue: Float get() = valueAnimation.targetValue
     val pressProgress: Float get() = pressProgressAnimation.value
     val scaleX: Float get() = scaleXAnimation.value
@@ -93,11 +101,13 @@ class DampedDragAnimation(
     fun release() {
         animationScope.launch {
             awaitFrame()
-            if (value != targetValue) {
-                val threshold = (valueRange.endInclusive - valueRange.start) * 0.025f
-                snapshotFlow { valueAnimation.value }
-                    .filter { abs(it - valueAnimation.targetValue) < threshold }
-                    .first()
+            if (value != targetValue && span != 0f) {
+                val threshold = span * 0.025f
+                if (threshold > 0f) {
+                    snapshotFlow { valueAnimation.value }
+                        .filter { abs(it - valueAnimation.targetValue) < threshold }
+                        .first()
+                }
             }
             launch { pressProgressAnimation.animateTo(0f, pressProgressAnimationSpec) }
             launch { scaleXAnimation.animateTo(initialScale, scaleXAnimationSpec) }
@@ -127,11 +137,16 @@ class DampedDragAnimation(
     }
 
     private fun updateVelocity() {
+        if (span == 0f) {
+            // 退化值域无速度可算，直接把速度归零。
+            animationScope.launch { velocityAnimation.animateTo(0f, velocityAnimationSpec) }
+            return
+        }
         velocityTracker.addPosition(
             Clock.System.now().toEpochMilliseconds(),
             Offset(value, 0f)
         )
-        val targetVelocity = velocityTracker.calculateVelocity().x / (valueRange.endInclusive - valueRange.start)
+        val targetVelocity = velocityTracker.calculateVelocity().x / span
         animationScope.launch { velocityAnimation.animateTo(targetVelocity, velocityAnimationSpec) }
     }
 }

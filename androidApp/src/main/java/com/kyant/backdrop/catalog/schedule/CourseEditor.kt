@@ -80,12 +80,12 @@ fun CourseEditorDialog(
      * 判断依据：星期相同、节次区间重叠、任一周段重叠、单双周可同时生效。
      */
     val findConflict: () -> Course? = {
-        val draftWeekRanges = compressRanges(selectedWeeks.value.sorted())
         store.courses.firstOrNull { other ->
             other.id != existing?.id &&
                 other.dayOfWeek == day &&
                 maxOf(other.startPeriod, startPeriod) <= minOf(other.endPeriod, endPeriod) &&
-                rangesOverlap(draftWeekRanges, other.weekRanges())
+                // 草稿周集合与其他课程（含单双周标记）在可同时开课的周上存在重叠才算冲突。
+                overlapsDraft(draftWeeks = selectedWeeks.value, other = other)
         }
     }
 
@@ -315,11 +315,28 @@ private fun StepperRow(
     }
 }
 
-private fun pairwiseOverlap(a: IntRange, b: IntRange): Boolean =
-    maxOf(a.first, b.first) <= minOf(a.last, b.last)
-
-private fun rangesOverlap(a: List<IntRange>, b: List<IntRange>): Boolean =
-    a.any { x -> b.any { y -> pairwiseOverlap(x, y) } }
+/**
+ * 判断草稿（已选周集合 [draftWeeks]）与其他课程是否存在可同时开课的周次重叠。
+ *
+ * 其他课程可能是单周/双周课程（[Course.parity] 非 ALL），其 [Course.weekRanges] 只是
+ * 区间描述，实际仅有奇/偶周开课。若只对区间做重叠判断，会把"单周课程"与"每周课程"
+ * 误判为冲突。正确做法是：存在某一周 w，既在草稿中、也在 other 的区间内，且
+ * w 满足 other 的单双周奇偶属性。
+ */
+private fun overlapsDraft(draftWeeks: Set<Int>, other: Course): Boolean {
+    val ranges = other.weekRanges()
+    for (w in draftWeeks) {
+        val inRange = ranges.any { w in it }
+        if (!inRange) continue
+        val parityHit = when (other.parity) {
+            Course.PARITY_ODD -> w % 2 == 1
+            Course.PARITY_EVEN -> w % 2 == 0
+            else -> true
+        }
+        if (parityHit) return true
+    }
+    return false
+}
 
 /** 将一组升序的周号压缩为连续周段，如 [1,2,3,6,7] -> [1..3, 6..7]。 */
 private fun compressRanges(sortedWeeks: List<Int>): List<IntRange> {

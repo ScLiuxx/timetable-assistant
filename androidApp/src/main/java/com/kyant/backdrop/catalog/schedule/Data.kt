@@ -31,6 +31,31 @@ data class Course(
     fun weekRanges(): List<IntRange> =
         if (weekSegments.isNotEmpty()) weekSegments else listOf(startWeek..endWeek)
 
+    /**
+     * 依据实际开课周推导的有效单双周期语义：集合全部为奇（或全部为偶）周时，
+     * 即使 [parity] 未显式标记（编辑器通过周选集表达单双周），也能正确归类，供筛选/展示使用。
+     */
+    val effectiveParity: Int
+        get() {
+            if (parity != PARITY_ALL) return parity
+            val ranges = weekRanges()
+            var hasOdd = false
+            var hasEven = false
+            for (r in ranges) {
+                var w = r.first
+                while (w <= r.last) {
+                    if (w % 2 == 1) hasOdd = true else hasEven = true
+                    if (hasOdd && hasEven) return PARITY_ALL
+                    w++
+                }
+            }
+            return when {
+                hasOdd && !hasEven -> PARITY_ODD
+                hasEven && !hasOdd -> PARITY_EVEN
+                else -> PARITY_ALL
+            }
+        }
+
     fun weekRangeLabel(): String {
         val ranges = weekRanges()
         return if (ranges.size == 1) {
@@ -68,9 +93,20 @@ data class Course(
         }
     }
 
-    /** 两个课程在任一周段存在重叠（原始区间，未做单双周裁剪）。 */
+    /** 两个课程在可同时开课的周段存在重叠（考虑单双周奇偶裁剪）。 */
     fun overlapsRanges(other: Course): Boolean =
-        weekRanges().any { a -> other.weekRanges().any { b -> intersect(a, b) } }
+        weekRanges().any { a ->
+            other.weekRanges().any { b ->
+                val start = maxOf(a.first, b.first)
+                val end = minOf(a.last, b.last)
+                if (start > end) {
+                    false
+                } else {
+                    // 在重叠区间内逐周判定，是否存在某一周同时满足两课的单双周奇偶属性。
+                    anyMutualWeek(start, end, this, other)
+                }
+            }
+        }
 
     companion object {
         const val PARITY_ALL = 0
@@ -79,8 +115,14 @@ data class Course(
     }
 }
 
-private fun intersect(a: IntRange, b: IntRange): Boolean =
-    maxOf(a.first, b.first) <= minOf(a.last, b.last)
+/** 判断 [a]、[b] 在周区间 [start, end] 内是否存在同时开课的周。 */
+private fun anyMutualWeek(start: Int, end: Int, a: Course, b: Course): Boolean {
+    val limit = minOf(end, 200) // 防御极端周数，避免超大循环。
+    for (week in start..limit) {
+        if (a.matchesWeek(week) && b.matchesWeek(week)) return true
+    }
+    return false
+}
 
 private fun parseWeekSegments(item: JSONObject): List<IntRange> {
     val array = item.optJSONArray("weekSegments") ?: return emptyList()

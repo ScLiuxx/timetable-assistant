@@ -126,10 +126,17 @@ object ReminderScheduler {
         prefs.edit().remove(KEY_SCHEDULED_CODES).apply()
     }
 
+    /**
+     * 生成每个"课程×日期"闹钟的唯一 requestCode。
+     *
+     * 用课程 id 与 epochDay 混合散列，避免仅对 id 取模（原实现 `courseId % 1_000_000`）
+     * 在 id 数值恰好同余时产生的 PendingIntent 相互覆盖。
+     */
     private fun requestCodeFor(courseId: Long, epochDay: Long): Int {
-        val base = (courseId % 1_000_000L).toInt()
-        val dayPart = (epochDay % 10_000L).toInt()
-        return (base * 31 + dayPart) and 0x7FFFFFFF
+        // 分级混合奇偶位，降低哈希碰撞；保留低 31 位保证非负且不溢出。
+        val mixed = courseId * 31L + epochDay * 7L
+        val hash = (mixed * 2654435761L) ushr 0 and 0x7FFFFFFFL
+        return hash.toInt()
     }
 
     private fun localMillis(epochDay: Long, minutes: Int): Long {

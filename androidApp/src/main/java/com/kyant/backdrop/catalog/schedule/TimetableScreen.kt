@@ -209,15 +209,14 @@ fun TimetableScreen(
 
                             weekCourses.forEach { (day, courses) ->
                                 courses.forEach { course ->
-                                    val x = timeColumnWidth + dayWidth * (day - 1)
-                                    val y = rowHeight * (course.startPeriod - 1)
-                                    CourseCard(
+                                    drawCourseCard(
                                         course = course,
-                                        modifier = Modifier
-                                            .offset(x = x + 1.dp, y = y + 2.dp)
-                                            .width(dayWidth - 2.dp)
-                                            .height(rowHeight * (course.endPeriod - course.startPeriod + 1) - 4.dp),
-                                        onClick = { onEdit(course) }
+                                        day = day,
+                                        timeColumnWidth = timeColumnWidth,
+                                        dayWidth = dayWidth,
+                                        rowHeight = rowHeight,
+                                        periodCount = semester.periodsPerDay,
+                                        onEdit = onEdit
                                     )
                                 }
                             }
@@ -315,6 +314,37 @@ private fun DayHeaderRow(
             }
         }
     }
+}
+
+/**
+ * 在网格内绘制课程卡片。当课程节次超出学期每天节数（[periodCount]）时，
+ * 会把显示范围约束到有效网格内，保证越界课程仍可见、可点击、可编辑，
+ * 避免因 daily 节数被人为调小后课程画到网格外而无法管理。
+ */
+@Composable
+private fun drawCourseCard(
+    course: Course,
+    day: Int,
+    timeColumnWidth: Dp,
+    dayWidth: Dp,
+    rowHeight: Dp,
+    periodCount: Int,
+    onEdit: (Course) -> Unit
+) {
+    // 有效节次范围约束到 [1, periodCount]；结束节次以开始节次为下界，避免高度为负。
+    val displayStart = course.startPeriod.coerceIn(1, periodCount)
+    val displayEnd = course.endPeriod.coerceIn(displayStart, periodCount)
+    val x = timeColumnWidth + dayWidth * (day - 1)
+    val y = rowHeight * (displayStart - 1)
+    val height = rowHeight * (displayEnd - displayStart + 1) - 4.dp
+    CourseCard(
+        course = course,
+        modifier = Modifier
+            .offset(x = x + 1.dp, y = y + 2.dp)
+            .width(dayWidth - 2.dp)
+            .height(height),
+        onClick = { onEdit(course) }
+    )
 }
 
 @Composable
