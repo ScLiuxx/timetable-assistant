@@ -15,10 +15,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
@@ -289,6 +291,51 @@ fun SettingsScreen(
                 }
                 GlassLabel(
                     "当前主题色：${AccentColorPresetNames[store.accentColorIndex]}",
+                    fontSize = 12
+                )
+            }
+
+            SectionHeader("玻璃透明度")
+            GlassSection {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    GlassLabel("更透", fontSize = 12)
+                    GlassSlider(
+                        value = store.glassOpacity,
+                        onValueChange = { store.updateGlassOpacity(it) },
+                        valueRange = 0.2f..0.8f,
+                        modifier = Modifier
+                            .weight(1f)
+                            .padding(horizontal = 10.dp)
+                    )
+                    GlassLabel("更实", fontSize = 12)
+                }
+                // 实时预览：随滑块即时变化玻璃虚实。
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .height(64.dp)
+                        .background(Color(0xFF6B91B8))
+                ) {
+                    GlassSurface(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(64.dp),
+                        shape = RoundedCornerShape(12.dp),
+                        shadow = false
+                    ) {
+                        Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                            BasicText(
+                                "桌面预览 · ${(store.glassOpacity * 100).toInt()}%",
+                                style = TextStyle(contentColor(), 13.sp, FontWeight.Medium)
+                            )
+                        }
+                    }
+                }
+                GlassLabel(
+                    "调节玻璃表面的虚实程度，实时作用于整个应用的玻璃组件。",
                     fontSize = 12
                 )
             }

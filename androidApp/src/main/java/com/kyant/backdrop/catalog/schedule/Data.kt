@@ -2,6 +2,7 @@ package com.kyant.backdrop.catalog.schedule
 
 import android.content.Context
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
@@ -166,6 +167,10 @@ class ScheduleStore(private val context: Context) {
     var accentColorIndex by mutableIntStateOf(0)
         private set
 
+    /** 玻璃表面透明度（0.2 ~ 0.8），越高玻璃越"实"。 */
+    var glassOpacity by mutableFloatStateOf(0.42f)
+        private set
+
     val courses = mutableStateListOf<Course>()
     val holidays = mutableStateListOf<Holiday>()
     val makeups = mutableStateListOf<Makeup>()
@@ -180,6 +185,7 @@ class ScheduleStore(private val context: Context) {
         root.put("reminderEnabled", reminderEnabled)
         root.put("reminderLeadMinutes", reminderLeadMinutes)
         root.put("accentColorIndex", accentColorIndex)
+        root.put("glassOpacity", glassOpacity.toDouble())
         root.put("semester", JSONObject().apply {
             put("name", semester.name)
             put("startEpochDay", semester.startEpochDay)
@@ -243,6 +249,7 @@ class ScheduleStore(private val context: Context) {
             reminderLeadMinutes = root.optInt("reminderLeadMinutes", 10).coerceIn(1, 60)
             accentColorIndex = root.optInt("accentColorIndex", 0)
                 .coerceIn(0, AccentColorPresets.size - 1)
+            glassOpacity = root.optDouble("glassOpacity", 0.42).toFloat().coerceIn(0.2f, 0.8f)
             root.optJSONObject("semester")?.let {
                 semester = Semester(
                     name = it.optString("name", semester.name),
@@ -329,6 +336,7 @@ class ScheduleStore(private val context: Context) {
         reminderEnabled = false
         reminderLeadMinutes = 10
         accentColorIndex = 0
+        glassOpacity = 0.42f
         courses.clear()
         holidays.clear()
         makeups.clear()
@@ -361,6 +369,11 @@ class ScheduleStore(private val context: Context) {
     fun updateAccentColorIndex(index: Int) {
         if (index < 0 || index >= AccentColorPresets.size) return
         accentColorIndex = index
+        persist()
+    }
+
+    fun updateGlassOpacity(value: Float) {
+        glassOpacity = value.coerceIn(0.2f, 0.8f)
         persist()
     }
 

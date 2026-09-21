@@ -126,7 +126,8 @@ fun ScheduleApp() {
     ScheduleBackdrop(customWallpaper) { backdrop ->
         CompositionLocalProvider(
             LocalGlassBackdrop provides backdrop,
-            LocalAccentColor provides accentColorPreset(store.accentColorIndex)
+            LocalAccentColor provides accentColorPreset(store.accentColorIndex),
+            LocalGlassOpacity provides store.glassOpacity
         ) {
             Box(Modifier.fillMaxSize()) {
                 Box(Modifier.fillMaxSize()) {
