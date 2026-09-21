@@ -20,7 +20,6 @@ import java.util.Calendar
 private const val ACTION_CLASS_REMIND = "com.kyant.backdrop.catalog.action.CLASS_REMIND"
 private const val REMINDER_PREFS = "reminder_prefs"
 private const val KEY_SCHEDULED_CODES = "scheduled_codes"
-private const val DAYS_AHEAD = 8
 
 object ReminderScheduler {
 
@@ -51,7 +50,11 @@ object ReminderScheduler {
         val today = todayEpochDay()
         val codes = ArrayList<Int>()
 
-        for (offset in 0 until DAYS_AHEAD) {
+        // 覆盖整个剩余学期，不再局限于近 8 天。
+        val semesterEnd = store.semester.startEpochDay + store.semester.totalWeeks * 7L
+        val remainingDays = (semesterEnd - today).coerceIn(0, 400L).toInt()
+
+        for (offset in 0 until remainingDays) {
             val epochDay = today + offset
             val resolution = store.resolveDay(epochDay)
             if (resolution.type == DayType.HOLIDAY) continue
@@ -61,7 +64,7 @@ object ReminderScheduler {
                 val triggerAt = localMillis(epochDay, minutes) - leadMillis
                 if (triggerAt <= now) continue
 
-                val requestCode = requestCodeFor(course.id, offset)
+                val requestCode = requestCodeFor(course.id, epochDay)
                 val intent = Intent(context, ReminderReceiver::class.java).apply {
                     action = ACTION_CLASS_REMIND
                     putExtra(ReminderReceiver.EXTRA_COURSE, course.name)
@@ -123,9 +126,10 @@ object ReminderScheduler {
         prefs.edit().remove(KEY_SCHEDULED_CODES).apply()
     }
 
-    private fun requestCodeFor(courseId: Long, offset: Int): Int {
-        val base = (courseId % 1_000_000L).toInt() * 10 + offset
-        return base and 0x7FFFFFFF
+    private fun requestCodeFor(courseId: Long, epochDay: Long): Int {
+        val base = (courseId % 1_000_000L).toInt()
+        val dayPart = (epochDay % 10_000L).toInt()
+        return (base * 31 + dayPart) and 0x7FFFFFFF
     }
 
     private fun localMillis(epochDay: Long, minutes: Int): Long {

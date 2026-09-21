@@ -1,20 +1,23 @@
 package com.kyant.backdrop.catalog.schedule
 
 import android.Manifest
-import android.content.ClipData
-import android.content.ClipboardManager
 import android.content.Context
 import android.content.pm.PackageManager
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
@@ -25,6 +28,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
@@ -41,8 +45,6 @@ fun SettingsScreen(
     onResetWallpaper: () -> Unit
 ) {
     val context = LocalContext.current
-    var showExport by remember { mutableStateOf(false) }
-    var exportText by remember { mutableStateOf("") }
     var showImport by remember { mutableStateOf(false) }
     var importText by remember { mutableStateOf("") }
     var importMessage by remember { mutableStateOf<String?>(null) }
@@ -51,6 +53,24 @@ fun SettingsScreen(
     val notificationPermission = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { granted -> store.updateReminderEnabled(granted) }
+
+    val openImport = rememberLauncherForActivityResult(
+        ActivityResultContracts.OpenDocument()
+    ) { uri ->
+        if (uri == null) return@rememberLauncherForActivityResult
+        val text = runCatching {
+            context.contentResolver.openInputStream(uri)
+                ?.bufferedReader()?.use { it.readText() }
+        }.getOrNull()
+        if (!text.isNullOrBlank() && text.trimStart().startsWith("{")) {
+            importText = text
+            importMessage = null
+        } else {
+            importText = ""
+            importMessage = "所选文件不是有效的课表 JSON 文件"
+        }
+        showImport = true
+    }
     val toggleReminder: () -> Unit = {
         if (store.reminderEnabled) {
             store.updateReminderEnabled(false)
@@ -88,12 +108,12 @@ fun SettingsScreen(
                 }
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     GlassLabel("学期开始日期（第 1 周周一）", fontSize = 12)
-                    GlassPillButton(
-                        formatFullDate(store.semester.startEpochDay),
-                        onClick = {
-                            showDatePicker(context, store.semester.startEpochDay) {
-                                store.updateSemester(store.semester.copy(startEpochDay = mondayOfWeek(it)))
-                            }
+                    GlassDateField(
+                        value = store.semester.startEpochDay,
+                        onChange = {
+                            store.updateSemester(
+                                store.semester.copy(startEpochDay = mondayOfWeek(it))
+                            )
                         },
                         modifier = Modifier.fillMaxWidth()
                     )
@@ -151,41 +171,31 @@ fun SettingsScreen(
                             modifier = Modifier.padding(end = 10.dp)
                         )
                         FlexSpacer()
-                        GlassPillButton(
-                            period.start,
-                            onClick = {
-                                showTimePicker(context, period.start) { newStart ->
-                                    store.updatePeriods(
-                                        store.periods.toMutableList().also {
-                                            it[index] = it[index].copy(start = newStart)
-                                        }
-                                    )
-                                }
+                        GlassTimeField(
+                            value = period.start,
+                            onChange = { newStart ->
+                                store.updatePeriods(
+                                    store.periods.toMutableList().also {
+                                        it[index] = it[index].copy(start = newStart)
+                                    }
+                                )
                             },
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                                horizontal = 12.dp,
-                                vertical = 6.dp
-                            )
+                            modifier = Modifier.weight(1f)
                         )
                         BasicText(
                             " ~ ",
                             style = TextStyle(secondaryContentColor(), 13.sp)
                         )
-                        GlassPillButton(
-                            period.end,
-                            onClick = {
-                                showTimePicker(context, period.end) { newEnd ->
-                                    store.updatePeriods(
-                                        store.periods.toMutableList().also {
-                                            it[index] = it[index].copy(end = newEnd)
-                                        }
-                                    )
-                                }
+                        GlassTimeField(
+                            value = period.end,
+                            onChange = { newEnd ->
+                                store.updatePeriods(
+                                    store.periods.toMutableList().also {
+                                        it[index] = it[index].copy(end = newEnd)
+                                    }
+                                )
                             },
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(
-                                horizontal = 12.dp,
-                                vertical = 6.dp
-                            )
+                            modifier = Modifier.weight(1f)
                         )
                     }
                 }
@@ -244,20 +254,66 @@ fun SettingsScreen(
                 }
             }
 
+            SectionHeader("主题色")
+            GlassSection {
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(10.dp)
+                ) {
+                    AccentColorPresets.forEachIndexed { index, color ->
+                        Box(
+                            Modifier
+                                .weight(1f)
+                                .size(30.dp)
+                                .clip(androidx.compose.foundation.shape.CircleShape)
+                                .background(color)
+                                .then(
+                                    if (store.accentColorIndex == index) {
+                                        Modifier.border(
+                                            2.5.dp,
+                                            contentColor(),
+                                            androidx.compose.foundation.shape.CircleShape
+                                        )
+                                    } else {
+                                        Modifier
+                                    }
+                                )
+                                .clickable { store.updateAccentColorIndex(index) },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (store.accentColorIndex == index) {
+                                IconView(IconCheck, Color.White, size = 16.dp)
+                            }
+                        }
+                    }
+                }
+                GlassLabel(
+                    "当前主题色：${AccentColorPresetNames[store.accentColorIndex]}",
+                    fontSize = 12
+                )
+            }
+
             SectionHeader("数据管理")
             GlassSection {
-                SettingsRowButton("导出课表", onClick = {
-                    exportText = store.exportJson()
-                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    clipboard.setPrimaryClip(ClipData.newPlainText("course_schedule", exportText))
-                    showExport = true
+                SettingsRowButton("导出课表（分享文件）", onClick = {
+                    val fileName = "课表_${formatYearMonthDay(todayEpochDay())}.json"
+                    ShareUtils.shareFile(
+                        context,
+                        fileName,
+                        store.exportJson(),
+                        "application/json"
+                    )
                 })
-                SettingsRowButton("导入课表", onClick = {
-                    val clipboard = context.getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
-                    val text = clipboard.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString()
-                    importText = if (!text.isNullOrBlank() && text.trimStart().startsWith("{")) text else ""
-                    importMessage = null
-                    showImport = true
+                SettingsRowButton("导出为系统日历（.ics）", onClick = {
+                    ShareUtils.shareFile(
+                        context,
+                        "课表_${formatYearMonthDay(todayEpochDay())}.ics",
+                        ShareUtils.buildIcs(store),
+                        "text/calendar"
+                    )
+                })
+                SettingsRowButton("导入课表（选择文件）", onClick = {
+                    openImport.launch(arrayOf("application/json", "text/plain", "*/*"))
                 })
                 SettingsRowButton("恢复默认设置", onClick = { confirmReset = true }, danger = true)
             }
@@ -270,29 +326,10 @@ fun SettingsScreen(
         }
     }
 
-    if (showExport) {
-        GlassDialog(onDismiss = { showExport = false }) {
-            GlassTitle("导出成功")
-            GlassLabel("课表数据已复制到剪贴板，可以粘贴保存或分享。", fontSize = 13)
-            BasicText(
-                exportText.take(600),
-                Modifier
-                    .fillMaxWidth()
-                    .heightIn(max = 180.dp)
-                    .verticalScroll(rememberScrollState()),
-                style = TextStyle(secondaryContentColor(), 11.sp)
-            )
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                FlexSpacer()
-                GlassPillButton("完成", onClick = { showExport = false })
-            }
-        }
-    }
-
     if (showImport) {
         GlassDialog(onDismiss = { showImport = false }) {
             GlassTitle("导入课表")
-            GlassLabel("请粘贴导出的课表 JSON 数据。", fontSize = 13)
+            GlassLabel("请确认以下课表 JSON 数据，点击导入将覆盖当前课表。", fontSize = 13)
             GlassTextField(
                 value = importText,
                 onValueChange = {

@@ -115,7 +115,10 @@ fun ScheduleApp() {
     }
 
     ScheduleBackdrop(customWallpaper) { backdrop ->
-        CompositionLocalProvider(LocalGlassBackdrop provides backdrop) {
+        CompositionLocalProvider(
+            LocalGlassBackdrop provides backdrop,
+            LocalAccentColor provides accentColorPreset(store.accentColorIndex)
+        ) {
             Box(Modifier.fillMaxSize()) {
                 Box(Modifier.fillMaxSize()) {
                     when (selectedTab) {

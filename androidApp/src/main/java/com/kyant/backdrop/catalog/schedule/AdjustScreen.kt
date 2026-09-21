@@ -24,7 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -32,7 +31,6 @@ import androidx.compose.ui.unit.sp
 
 @Composable
 fun AdjustScreen(store: ScheduleStore) {
-    val context = LocalContext.current
     var showHolidayDialog by remember { mutableStateOf(false) }
     var showMakeupDialog by remember { mutableStateOf(false) }
 
@@ -176,16 +174,15 @@ private fun HolidayDialog(
     onDismiss: () -> Unit,
     onSave: (Long, String) -> Unit
 ) {
-    val context = LocalContext.current
     var date by remember { mutableLongStateOf(todayEpochDay()) }
     var name by remember { mutableStateOf("") }
 
     GlassDialog(onDismiss = onDismiss) {
         GlassTitle("添加节假日")
         GlassLabel("日期", fontSize = 12)
-        GlassPillButton(
-            formatFullDate(date),
-            onClick = { showDatePicker(context, date) { date = it } },
+        GlassDateField(
+            value = date,
+            onChange = { date = it },
             modifier = Modifier.fillMaxWidth()
         )
         GlassLabel("名称", fontSize = 12)
@@ -208,7 +205,6 @@ private fun MakeupDialog(
     onDismiss: () -> Unit,
     onSave: (Long, Int, String) -> Unit
 ) {
-    val context = LocalContext.current
     var date by remember { mutableLongStateOf(todayEpochDay()) }
     var target by remember { mutableIntStateOf(1) }
     var name by remember { mutableStateOf("") }
@@ -216,9 +212,9 @@ private fun MakeupDialog(
     GlassDialog(onDismiss = onDismiss) {
         GlassTitle("添加调休补课")
         GlassLabel("补课日期", fontSize = 12)
-        GlassPillButton(
-            formatFullDate(date),
-            onClick = { showDatePicker(context, date) { date = it } },
+        GlassDateField(
+            value = date,
+            onChange = { date = it },
             modifier = Modifier.fillMaxWidth()
         )
         GlassLabel("按哪天的课表上课", fontSize = 12)

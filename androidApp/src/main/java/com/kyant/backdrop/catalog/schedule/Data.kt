@@ -2,6 +2,7 @@ package com.kyant.backdrop.catalog.schedule
 
 import android.content.Context
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
@@ -14,6 +15,7 @@ data class Course(
     val name: String = "",
     val teacher: String = "",
     val location: String = "",
+    val note: String = "",
     val colorIndex: Int = 0,
     val dayOfWeek: Int = 1,
     val startPeriod: Int = 1,
@@ -101,6 +103,25 @@ val CourseColorNames: List<String> = listOf(
 
 fun courseColor(index: Int): Color = CourseColors[((index % CourseColors.size) + CourseColors.size) % CourseColors.size]
 
+/** 可自定义的强调/主题色预设。 */
+val AccentColorPresets: List<Color> = listOf(
+    Color(0xFF0A84FF),
+    Color(0xFF34C759),
+    Color(0xFFAF52DE),
+    Color(0xFFFF9500),
+    Color(0xFFFF3B30),
+    Color(0xFF00C7BE),
+    Color(0xFFFF2D55),
+    Color(0xFF5856D6)
+)
+
+val AccentColorPresetNames: List<String> = listOf(
+    "蓝", "绿", "紫", "橙", "红", "青", "粉", "靛"
+)
+
+fun accentColorPreset(index: Int): Color =
+    AccentColorPresets[((index % AccentColorPresets.size) + AccentColorPresets.size) % AccentColorPresets.size]
+
 fun defaultPeriods(): List<PeriodTime> = listOf(
     PeriodTime("08:00", "08:45"),
     PeriodTime("08:55", "09:40"),
@@ -139,7 +160,10 @@ class ScheduleStore(private val context: Context) {
     var reminderEnabled by mutableStateOf(false)
         private set
 
-    var reminderLeadMinutes by mutableStateOf(10)
+    var reminderLeadMinutes by mutableIntStateOf(10)
+        private set
+
+    var accentColorIndex by mutableIntStateOf(0)
         private set
 
     val courses = mutableStateListOf<Course>()
@@ -155,6 +179,7 @@ class ScheduleStore(private val context: Context) {
         root.put("version", 1)
         root.put("reminderEnabled", reminderEnabled)
         root.put("reminderLeadMinutes", reminderLeadMinutes)
+        root.put("accentColorIndex", accentColorIndex)
         root.put("semester", JSONObject().apply {
             put("name", semester.name)
             put("startEpochDay", semester.startEpochDay)
@@ -176,6 +201,7 @@ class ScheduleStore(private val context: Context) {
                     put("name", course.name)
                     put("teacher", course.teacher)
                     put("location", course.location)
+                    put("note", course.note)
                     put("colorIndex", course.colorIndex)
                     put("dayOfWeek", course.dayOfWeek)
                     put("startPeriod", course.startPeriod)
@@ -212,6 +238,8 @@ class ScheduleStore(private val context: Context) {
             val root = JSONObject(raw)
             reminderEnabled = root.optBoolean("reminderEnabled", false)
             reminderLeadMinutes = root.optInt("reminderLeadMinutes", 10).coerceIn(1, 60)
+            accentColorIndex = root.optInt("accentColorIndex", 0)
+                .coerceIn(0, AccentColorPresets.size - 1)
             root.optJSONObject("semester")?.let {
                 semester = Semester(
                     name = it.optString("name", semester.name),
@@ -238,6 +266,7 @@ class ScheduleStore(private val context: Context) {
                             name = item.optString("name", ""),
                             teacher = item.optString("teacher", ""),
                             location = item.optString("location", ""),
+                            note = item.optString("note", ""),
                             colorIndex = item.optInt("colorIndex", 0),
                             dayOfWeek = item.optInt("dayOfWeek", 1).coerceIn(1, 7),
                             startPeriod = item.optInt("startPeriod", 1),
@@ -292,6 +321,7 @@ class ScheduleStore(private val context: Context) {
         periods = defaultPeriods()
         reminderEnabled = false
         reminderLeadMinutes = 10
+        accentColorIndex = 0
         courses.clear()
         holidays.clear()
         makeups.clear()
@@ -318,6 +348,12 @@ class ScheduleStore(private val context: Context) {
 
     fun updateReminderLeadMinutes(minutes: Int) {
         reminderLeadMinutes = minutes.coerceIn(1, 60)
+        persist()
+    }
+
+    fun updateAccentColorIndex(index: Int) {
+        if (index < 0 || index >= AccentColorPresets.size) return
+        accentColorIndex = index
         persist()
     }
 

@@ -42,6 +42,7 @@ fun CourseEditorDialog(
     var name by remember { mutableStateOf(existing?.name ?: "") }
     var teacher by remember { mutableStateOf(existing?.teacher ?: "") }
     var location by remember { mutableStateOf(existing?.location ?: "") }
+    var note by remember { mutableStateOf(existing?.note ?: "") }
     var colorIndex by remember { mutableIntStateOf(existing?.colorIndex ?: 0) }
     var day by remember { mutableIntStateOf(existing?.dayOfWeek ?: defaultDay) }
     var startPeriod by remember { mutableIntStateOf(existing?.startPeriod ?: defaultPeriod) }
@@ -49,6 +50,43 @@ fun CourseEditorDialog(
     var startWeek by remember { mutableIntStateOf(existing?.startWeek ?: 1) }
     var endWeek by remember { mutableIntStateOf(existing?.endWeek ?: store.semester.totalWeeks) }
     var parity by remember { mutableIntStateOf(existing?.parity ?: Course.PARITY_ALL) }
+
+    var conflictCourse by remember { mutableStateOf<Course?>(null) }
+
+    /**
+     * 查找与当前编辑内容在同一时段存在冲突的已有课程。
+     * 判断依据：星期相同、节次区间重叠、周次区间重叠、单双周可同时生效。
+     */
+    val findConflict: () -> Course? = {
+        store.courses.firstOrNull { other ->
+            other.id != existing?.id &&
+                other.dayOfWeek == day &&
+                maxOf(other.startPeriod, startPeriod) <= minOf(other.endPeriod, endPeriod) &&
+                maxOf(other.startWeek, startWeek) <= minOf(other.endWeek, endWeek) &&
+                (other.parity == Course.PARITY_ALL ||
+                    parity == Course.PARITY_ALL ||
+                    other.parity == parity)
+        }
+    }
+
+    val saveCourse: () -> Unit = {
+        val course = Course(
+            id = existing?.id ?: System.nanoTime(),
+            name = name.ifBlank { "未命名课程" },
+            teacher = teacher,
+            location = location,
+            note = note,
+            colorIndex = colorIndex,
+            dayOfWeek = day,
+            startPeriod = startPeriod,
+            endPeriod = endPeriod,
+            startWeek = startWeek,
+            endWeek = endWeek,
+            parity = parity
+        )
+        if (existing == null) store.addCourse(course) else store.updateCourse(course)
+        onDismiss()
+    }
 
     GlassDialog(onDismiss = onDismiss) {
         GlassTitle(if (existing == null) "添加课程" else "编辑课程")
@@ -62,6 +100,7 @@ fun CourseEditorDialog(
             EditorField("课程名称", name) { name = it }
             EditorField("任课教师", teacher) { teacher = it }
             EditorField("上课地点", location) { location = it }
+            EditorField("备注", note) { note = it }
 
             EditorLabel("星期")
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(6.dp)) {
@@ -137,25 +176,37 @@ fun CourseEditorDialog(
             GlassPillButton(
                 "保存",
                 onClick = {
-                    val course = Course(
-                        id = existing?.id ?: System.nanoTime(),
-                        name = name.ifBlank { "未命名课程" },
-                        teacher = teacher,
-                        location = location,
-                        colorIndex = colorIndex,
-                        dayOfWeek = day,
-                        startPeriod = startPeriod,
-                        endPeriod = endPeriod,
-                        startWeek = startWeek,
-                        endWeek = endWeek,
-                        parity = parity
-                    )
-                    if (existing == null) store.addCourse(course) else store.updateCourse(course)
-                    onDismiss()
+                    val conflict = findConflict()
+                    conflictCourse = conflict
+                    if (conflict == null) saveCourse()
                 },
                 tint = accentColor(),
                 contentColorOverride = Color.White
             )
+        }
+    }
+
+    conflictCourse?.let { conflict ->
+        GlassDialog(onDismiss = { conflictCourse = null }) {
+            GlassTitle("时间冲突提示")
+            GlassLabel(
+                "「${conflict.name}」已在${weekdayShortName(conflict.dayOfWeek)}" +
+                    "${conflict.periodLabel()}${conflict.weeksLabel()}上课，与当前课程时间重叠。",
+                fontSize = 13
+            )
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                FlexSpacer()
+                GlassPillButton("再想想", onClick = { conflictCourse = null })
+                GlassPillButton(
+                    "仍然保存",
+                    onClick = {
+                        conflictCourse = null
+                        saveCourse()
+                    },
+                    tint = accentColor(),
+                    contentColorOverride = Color.White
+                )
+            }
         }
     }
 }

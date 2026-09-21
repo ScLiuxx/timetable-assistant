@@ -20,13 +20,17 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.pager.HorizontalPager
+import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -39,6 +43,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.launch
 import kotlin.math.floor
 
 @Composable
@@ -49,7 +54,15 @@ fun TimetableScreen(
 ) {
     val today = todayEpochDay()
     val semester = store.semester
-    var week by remember { mutableIntStateOf(store.weekOf(today).coerceIn(1, semester.totalWeeks)) }
+    val currentWeek = store.weekOf(today).coerceIn(1, semester.totalWeeks)
+    val pagerState = rememberPagerState(initialPage = currentWeek - 1) { semester.totalWeeks }
+    val week = pagerState.currentPage + 1
+    val scope = rememberCoroutineScope()
+    LaunchedEffect(currentWeek) {
+        if (pagerState.currentPage != currentWeek - 1) {
+            pagerState.scrollToPage(currentWeek - 1)
+        }
+    }
 
     Column(Modifier.fillMaxSize().statusBarsPadding()) {
         Spacer(Modifier.size(10.dp))
@@ -64,7 +77,7 @@ fun TimetableScreen(
                     GlassLabel("共 ${semester.totalWeeks} 周 · 每天 ${semester.periodsPerDay} 节", fontSize = 12)
                 }
                 GlassPillButton("回到本周", onClick = {
-                    week = store.weekOf(today).coerceIn(1, semester.totalWeeks)
+                    scope.launch { pagerState.animateScrollToPage(currentWeek - 1) }
                 })
             }
 
@@ -80,7 +93,9 @@ fun TimetableScreen(
                 ) {
                     GlassPillButton(
                         "上一周",
-                        onClick = { if (week > 1) week-- },
+                        onClick = {
+                            if (week > 1) scope.launch { pagerState.animateScrollToPage(week - 2) }
+                        },
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     )
                     Spacer(Modifier.weight(1f))
@@ -97,7 +112,9 @@ fun TimetableScreen(
                     Spacer(Modifier.weight(1f))
                     GlassPillButton(
                         "下一周",
-                        onClick = { if (week < semester.totalWeeks) week++ },
+                        onClick = {
+                            if (week < semester.totalWeeks) scope.launch { pagerState.animateScrollToPage(week) }
+                        },
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 6.dp)
                     )
                 }
@@ -106,96 +123,100 @@ fun TimetableScreen(
 
         Spacer(Modifier.height(10.dp))
 
-        BoxWithConstraints(
+        HorizontalPager(
+            state = pagerState,
             Modifier
                 .fillMaxWidth()
                 .weight(1f)
                 .navigationBarsPadding()
                 .padding(horizontal = 8.dp)
                 .padding(bottom = 84.dp)
-        ) {
-            val density = LocalDensity.current
-            val timeColumnWidth = 40.dp
-            val rowHeight = 58.dp
-            val headerHeight = 50.dp
-            val dayWidth = (maxWidth - timeColumnWidth) / 7
+        ) { page ->
+            val pageWeek = page + 1
+            BoxWithConstraints(Modifier.fillMaxSize()) {
+                val density = LocalDensity.current
+                val timeColumnWidth = 40.dp
+                val rowHeight = 58.dp
+                val headerHeight = 50.dp
+                val dayWidth = (maxWidth - timeColumnWidth) / 7
 
-            val weekCourses = store.coursesForWeek(week)
-            val gridHeight = rowHeight * semester.periodsPerDay
+                val weekCourses = store.coursesForWeek(pageWeek)
+                val gridHeight = rowHeight * semester.periodsPerDay
 
-            Column(Modifier.fillMaxSize()) {
-                DayHeaderRow(
-                    store = store,
-                    week = week,
-                    timeColumnWidth = timeColumnWidth,
-                    dayWidth = dayWidth,
-                    today = today,
-                    height = headerHeight
-                )
-                Column(
-                    Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
-                        .verticalScroll(rememberScrollState())
-                ) {
-                    Box(
+                Column(Modifier.fillMaxSize()) {
+                    DayHeaderRow(
+                        store = store,
+                        week = pageWeek,
+                        timeColumnWidth = timeColumnWidth,
+                        dayWidth = dayWidth,
+                        today = today,
+                        height = headerHeight
+                    )
+                    Column(
                         Modifier
                             .fillMaxWidth()
-                            .height(gridHeight)
-                            .pointerInput(week, semester) {
-                                detectTapGestures { position ->
-                                    val px = with(density) { timeColumnWidth.toPx() }
-                                    val dayPx = with(density) { dayWidth.toPx() }
-                                    val rowPx = with(density) { rowHeight.toPx() }
-                                    if (position.x >= px) {
-                                        val day = (floor((position.x - px) / dayPx).toInt() + 1)
-                                            .coerceIn(1, 7)
-                                        val period = (floor(position.y / rowPx).toInt() + 1)
-                                            .coerceIn(1, semester.periodsPerDay)
-                                        onAdd(day, period)
+                            .weight(1f)
+                            .verticalScroll(rememberScrollState())
+                    ) {
+                        Box(
+                            Modifier
+                                .fillMaxWidth()
+                                .height(gridHeight)
+                                .pointerInput(pageWeek, semester) {
+                                    detectTapGestures { position ->
+                                        val px = with(density) { timeColumnWidth.toPx() }
+                                        val dayPx = with(density) { dayWidth.toPx() }
+                                        val rowPx = with(density) { rowHeight.toPx() }
+                                        if (position.x >= px) {
+                                            val day = (floor((position.x - px) / dayPx).toInt() + 1)
+                                                .coerceIn(1, 7)
+                                            val period = (floor(position.y / rowPx).toInt() + 1)
+                                                .coerceIn(1, semester.periodsPerDay)
+                                            onAdd(day, period)
+                                        }
                                     }
                                 }
-                            }
-                    ) {
-                        GridLines(semester.periodsPerDay, rowHeight, timeColumnWidth, dayWidth)
+                        ) {
+                            GridLines(semester.periodsPerDay, rowHeight, timeColumnWidth, dayWidth)
 
-                        Column(Modifier.width(timeColumnWidth)) {
-                            repeat(semester.periodsPerDay) { index ->
-                                val period = store.periods.getOrNull(index)
-                                Box(
-                                    Modifier
-                                        .fillMaxWidth()
-                                        .height(rowHeight),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                                        BasicText(
-                                            "${index + 1}",
-                                            style = TextStyle(contentColor(), 13.sp, FontWeight.SemiBold)
-                                        )
-                                        if (period != null) {
+                            Column(Modifier.width(timeColumnWidth)) {
+                                repeat(semester.periodsPerDay) { index ->
+                                    val period = store.periods.getOrNull(index)
+                                    Box(
+                                        Modifier
+                                            .fillMaxWidth()
+                                            .height(rowHeight),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                             BasicText(
-                                                period.start,
-                                                style = TextStyle(secondaryContentColor(), 9.sp)
+                                                "${index + 1}",
+                                                style = TextStyle(contentColor(), 13.sp, FontWeight.SemiBold)
                                             )
+                                            if (period != null) {
+                                                BasicText(
+                                                    period.start,
+                                                    style = TextStyle(secondaryContentColor(), 9.sp)
+                                                )
+                                            }
                                         }
                                     }
                                 }
                             }
-                        }
 
-                        weekCourses.forEach { (day, courses) ->
-                            courses.forEach { course ->
-                                val x = timeColumnWidth + dayWidth * (day - 1)
-                                val y = rowHeight * (course.startPeriod - 1)
-                                CourseCard(
-                                    course = course,
-                                    modifier = Modifier
-                                        .offset(x = x + 1.dp, y = y + 2.dp)
-                                        .width(dayWidth - 2.dp)
-                                        .height(rowHeight * (course.endPeriod - course.startPeriod + 1) - 4.dp),
-                                    onClick = { onEdit(course) }
-                                )
+                            weekCourses.forEach { (day, courses) ->
+                                courses.forEach { course ->
+                                    val x = timeColumnWidth + dayWidth * (day - 1)
+                                    val y = rowHeight * (course.startPeriod - 1)
+                                    CourseCard(
+                                        course = course,
+                                        modifier = Modifier
+                                            .offset(x = x + 1.dp, y = y + 2.dp)
+                                            .width(dayWidth - 2.dp)
+                                            .height(rowHeight * (course.endPeriod - course.startPeriod + 1) - 4.dp),
+                                        onClick = { onEdit(course) }
+                                    )
+                                }
                             }
                         }
                     }

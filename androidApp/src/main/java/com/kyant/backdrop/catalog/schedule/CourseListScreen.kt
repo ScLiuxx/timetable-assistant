@@ -16,6 +16,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -34,6 +35,19 @@ fun CourseListScreen(
     onEdit: (Course) -> Unit
 ) {
     var confirmClear by remember { mutableStateOf(false) }
+    var query by remember { mutableStateOf("") }
+    var parityFilter by remember { mutableIntStateOf(Course.PARITY_ALL) }
+
+    val filtered = store.courses.filter { course ->
+        val keyword = query.trim()
+        val matchKeyword = keyword.isEmpty() ||
+            course.name.contains(keyword, ignoreCase = true) ||
+            course.teacher.contains(keyword, ignoreCase = true) ||
+            course.location.contains(keyword, ignoreCase = true) ||
+            course.note.contains(keyword, ignoreCase = true)
+        val matchParity = parityFilter == Course.PARITY_ALL || course.parity == parityFilter
+        matchKeyword && matchParity
+    }
 
     ScreenScaffold(
         title = "课程管理",
@@ -46,6 +60,35 @@ fun CourseListScreen(
                 .padding(horizontal = 20.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)
         ) {
+            GlassTextField(
+                value = query,
+                onValueChange = { query = it },
+                placeholder = "搜索课程 / 教师 / 地点 / 备注",
+                singleLine = true
+            )
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                GlassChip(
+                    "全部",
+                    selected = parityFilter == Course.PARITY_ALL,
+                    onClick = { parityFilter = Course.PARITY_ALL },
+                    modifier = Modifier.weight(1f)
+                )
+                GlassChip(
+                    "单周",
+                    selected = parityFilter == Course.PARITY_ODD,
+                    onClick = { parityFilter = Course.PARITY_ODD },
+                    modifier = Modifier.weight(1f)
+                )
+                GlassChip(
+                    "双周",
+                    selected = parityFilter == Course.PARITY_EVEN,
+                    onClick = { parityFilter = Course.PARITY_EVEN },
+                    modifier = Modifier.weight(1f)
+                )
+            }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 GlassPillButton(
                     "添加课程",
@@ -58,26 +101,41 @@ fun CourseListScreen(
                 }
             }
 
-            if (store.courses.isEmpty()) {
-                GlassSection {
-                    Column(
-                        Modifier.fillMaxWidth().padding(vertical = 24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(6.dp)
-                    ) {
-                        GlassTitle("还没有课程", fontSize = 16)
-                        GlassLabel("点击上方按钮添加第一门课程", fontSize = 13)
+            when {
+                store.courses.isEmpty() -> {
+                    GlassSection {
+                        Column(
+                            Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            GlassTitle("还没有课程", fontSize = 16)
+                            GlassLabel("点击上方按钮添加第一门课程", fontSize = 13)
+                        }
                     }
                 }
-            } else {
-                for (day in 1..7) {
-                    val dayCourses = store.courses
-                        .filter { it.dayOfWeek == day }
-                        .sortedBy { it.startPeriod }
-                    if (dayCourses.isEmpty()) continue
-                    SectionHeader("${weekdayShortName(day)} · ${dayCourses.size} 门")
-                    dayCourses.forEach { course ->
-                        CourseListItem(course = course, onClick = { onEdit(course) })
+                filtered.isEmpty() && query.isNotBlank() -> {
+                    GlassSection {
+                        Column(
+                            Modifier.fillMaxWidth().padding(vertical = 24.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            GlassTitle("没有匹配的课程", fontSize = 16)
+                            GlassLabel("换个关键词或筛选条件试试", fontSize = 13)
+                        }
+                    }
+                }
+                else -> {
+                    for (day in 1..7) {
+                        val dayCourses = filtered
+                            .filter { it.dayOfWeek == day }
+                            .sortedBy { it.startPeriod }
+                        if (dayCourses.isEmpty()) continue
+                        SectionHeader("${weekdayShortName(day)} · ${dayCourses.size} 门")
+                        dayCourses.forEach { course ->
+                            CourseListItem(course = course, onClick = { onEdit(course) })
+                        }
                     }
                 }
             }
@@ -137,6 +195,12 @@ private fun CourseListItem(course: Course, onClick: () -> Unit) {
                     style = TextStyle(secondaryContentColor(), 12.sp)
                 )
                 BasicText(course.weeksLabel(), style = TextStyle(secondaryContentColor(), 11.sp))
+                if (course.note.isNotBlank()) {
+                    BasicText(
+                        course.note,
+                        style = TextStyle(secondaryContentColor().copy(alpha = 0.8f), 11.sp)
+                    )
+                }
             }
             GlassPillButton(
                 "编辑",

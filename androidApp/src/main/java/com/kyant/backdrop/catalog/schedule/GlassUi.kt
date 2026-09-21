@@ -44,6 +44,11 @@ val LocalGlassBackdrop = staticCompositionLocalOf<Backdrop> {
     error("No glass backdrop provided")
 }
 
+/** 当前应用主题强调色，可在根节点通过 [LocalAccentColor] 提供。 */
+val LocalAccentColor = staticCompositionLocalOf<Color> {
+    Color(0xFF0A84FF)
+}
+
 @Composable
 fun isLightTheme(): Boolean = !isSystemInDarkTheme()
 
@@ -56,7 +61,7 @@ fun secondaryContentColor(): Color =
     else Color(0xFFF4F4F6).copy(alpha = 0.6f)
 
 @Composable
-fun accentColor(): Color = if (isLightTheme()) Color(0xFF007AFF) else Color(0xFF0A84FF)
+fun accentColor(): Color = LocalAccentColor.current
 
 @Composable
 fun glassSurfaceColor(): Color =

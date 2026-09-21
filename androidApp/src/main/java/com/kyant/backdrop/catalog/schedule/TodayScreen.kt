@@ -184,6 +184,12 @@ private fun TodayCourseCard(
                     course.weeksLabel(),
                     style = TextStyle(secondaryContentColor(), 11.sp)
                 )
+                if (course.note.isNotBlank()) {
+                    BasicText(
+                        course.note,
+                        style = TextStyle(secondaryContentColor().copy(alpha = 0.8f), 11.sp)
+                    )
+                }
             }
         }
     }
