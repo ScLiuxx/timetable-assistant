@@ -3,7 +3,6 @@ package com.kyant.backdrop.catalog.schedule
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
@@ -17,9 +16,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
@@ -28,9 +25,7 @@ import androidx.compose.foundation.text.BasicText
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Alignment
@@ -40,9 +35,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.isSpecified
-import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -52,6 +44,7 @@ import com.kyant.backdrop.Backdrop
 import com.kyant.backdrop.drawBackdrop
 import com.kyant.backdrop.effects.blur
 import com.kyant.backdrop.effects.vibrancy
+import com.kyant.backdrop.catalog.components.LiquidButton
 import com.kyant.backdrop.highlight.Highlight
 import com.kyant.backdrop.shadow.Shadow
 
@@ -290,20 +283,27 @@ fun GlassPillButton(
     contentColorOverride: Color? = null,
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp, vertical = 9.dp)
 ) {
-    GlassSurface(
+    val backdrop = LocalGlassBackdrop.current
+    LiquidButton(
+        onClick = {
+            onClick()
+        },
+        backdrop = backdrop,
         modifier = modifier,
-        shape = CircleShape,
         tint = tint,
-        contentPadding = contentPadding,
-        onClick = onClick,
-        shadow = false
-    ) {
-        BasicText(
-            text,
-            style = TextStyle(contentColorOverride ?: contentColor(), 14.sp, FontWeight.Medium),
-            modifier = Modifier.align(Alignment.Center)
-        )
-    }
+        surfaceColor = Color.Unspecified,
+        content = {
+            Box(
+                Modifier.padding(contentPadding),
+                contentAlignment = Alignment.Center
+            ) {
+                BasicText(
+                    text,
+                    style = TextStyle(contentColorOverride ?: contentColor(), 14.sp, FontWeight.Medium)
+                )
+            }
+        }
+    )
 }
 
 @Composable
@@ -348,63 +348,4 @@ fun CenteredLabel(text: String, modifier: Modifier = Modifier) {
     )
 }
 
-/** 简洁可拖动的滑块（无 material3 依赖），用于玻璃透明度等数值调节。 */
-@Composable
-fun GlassSlider(
-    value: Float,
-    onValueChange: (Float) -> Unit,
-    valueRange: ClosedFloatingPointRange<Float> = 0f..1f,
-    modifier: Modifier = Modifier
-) {
-    val thumbSize = 18.dp
-    val density = LocalDensity.current
-    var trackWidthPx by remember { mutableFloatStateOf(1f) }
-    val fraction = ((value - valueRange.start) /
-        (valueRange.endInclusive - valueRange.start)).coerceIn(0f, 1f)
-    val currentOnValueChange by rememberUpdatedState(onValueChange)
-    val mapToValue: (Float) -> Float = { xPx ->
-        val f = (xPx / trackWidthPx).coerceIn(0f, 1f)
-        valueRange.start + f * (valueRange.endInclusive - valueRange.start)
-    }
 
-    Box(
-        modifier
-            .fillMaxWidth()
-            .height(thumbSize)
-            .onSizeChanged { trackWidthPx = it.width.toFloat() }
-            .pointerInput(valueRange) {
-                detectDragGestures(
-                    onDragStart = { o -> currentOnValueChange(mapToValue(o.x)) },
-                    onDrag = { change, _ ->
-                        change.consume()
-                        currentOnValueChange(mapToValue(change.position.x))
-                    }
-                )
-            },
-        contentAlignment = Alignment.CenterStart
-    ) {
-        Box(
-            Modifier
-                .fillMaxWidth()
-                .height(4.dp)
-                .clip(CircleShape)
-                .background(contentColor().copy(alpha = 0.15f))
-        )
-        Box(
-            Modifier
-                .fillMaxWidth(fraction)
-                .height(4.dp)
-                .clip(CircleShape)
-                .background(accentColor())
-        )
-        val thumbOffset = with(density) { ((trackWidthPx - thumbSize.toPx()) * fraction).toDp() }
-        Box(
-            Modifier
-                .offset(x = thumbOffset)
-                .requiredSize(thumbSize)
-                .clip(CircleShape)
-                .background(Color.White)
-                .border(0.5.dp, contentColor().copy(alpha = 0.18f), CircleShape)
-        )
-    }
-}

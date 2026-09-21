@@ -38,6 +38,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.core.content.ContextCompat
+import com.kyant.backdrop.catalog.components.LiquidSlider
+import com.kyant.backdrop.catalog.components.LiquidToggle
 
 @Composable
 fun SettingsScreen(
@@ -209,17 +211,18 @@ fun SettingsScreen(
                     Column(Modifier.weight(1f)) {
                         BasicText("上课提醒", style = TextStyle(contentColor(), 15.sp))
                         BasicText(
-                            "课程开始前发送通知",
-                            style = TextStyle(secondaryContentColor(), 12.sp)
-                        )
-                    }
-                    GlassPillButton(
-                        if (store.reminderEnabled) "已开启" else "已关闭",
-                        onClick = toggleReminder,
-                        tint = if (store.reminderEnabled) accentColor() else Color.Unspecified,
-                        contentColorOverride = if (store.reminderEnabled) Color.White else null
+                        "课程开始前发送通知",
+                        style = TextStyle(secondaryContentColor(), 12.sp)
                     )
                 }
+                LiquidToggle(
+                    selected = { store.reminderEnabled },
+                    onSelect = { enable ->
+                        if (enable) toggleReminder() else store.updateReminderEnabled(false)
+                    },
+                    backdrop = LocalGlassBackdrop.current
+                )
+            }
                 if (store.reminderEnabled) {
                     GlassLabel("提前提醒", fontSize = 12)
                     Row(
@@ -302,13 +305,13 @@ fun SettingsScreen(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     GlassLabel("更透", fontSize = 12)
-                    GlassSlider(
-                        value = store.glassOpacity,
+                    LiquidSlider(
+                        value = { store.glassOpacity },
                         onValueChange = { store.updateGlassOpacity(it) },
                         valueRange = 0.2f..0.8f,
-                        modifier = Modifier
-                            .weight(1f)
-                            .padding(horizontal = 10.dp)
+                        visibilityThreshold = 0.001f,
+                        backdrop = LocalGlassBackdrop.current,
+                        modifier = Modifier.weight(1f)
                     )
                     GlassLabel("更实", fontSize = 12)
                 }
