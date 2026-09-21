@@ -70,11 +70,8 @@ fun LiquidBottomTabs(
     val accentColor =
         if (isLightTheme) Color(0xFF0088FF)
         else Color(0xFF0091FF)
-    val baseAlpha = 0.4f * (glassOpacity / 0.42f)
-    val containerAlpha = baseAlpha.coerceIn(0f, 0.85f)
-    val containerColor =
-        if (isLightTheme) Color(0xFFFAFAFA).copy(alpha = containerAlpha)
-        else Color(0xFF121212).copy(alpha = containerAlpha)
+    // 与课表卡片共用的玻璃表面色：跟随本地玻璃透明度，消除底栏与内容之间的分界观感。
+    val surfaceColor = glassSurfaceColor()
 
     val tabsBackdrop = rememberLayerBackdrop()
 
@@ -180,7 +177,7 @@ fun LiquidBottomTabs(
                         scaleX = scale
                         scaleY = scale
                     },
-                    onDrawSurface = { drawRect(containerColor) }
+                    onDrawSurface = { drawRect(surfaceColor) }
                 )
                 .then(interactiveHighlight.modifier)
                 .height(64f.dp)
@@ -219,7 +216,7 @@ fun LiquidBottomTabs(
                             val progress = dampedDragAnimation.pressProgress
                             Highlight.Default.copy(alpha = progress)
                         },
-                        onDrawSurface = { drawRect(containerColor) }
+                        onDrawSurface = { drawRect(surfaceColor) }
                     )
                     .then(interactiveHighlight.modifier)
                     .height(56f.dp)
